@@ -1,8 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useAuth } from "../context/AuthContext"
-import { adminAPI } from "../services/api"
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { adminAPI } from "../services/api";
 import {
   Users,
   Shield,
@@ -15,45 +16,59 @@ import {
   AlertTriangle,
   CheckCircle,
   RefreshCw,
-} from "lucide-react"
+} from "lucide-react";
 
 const AdminDashboard = () => {
-  const { user } = useAuth()
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
     totalSessions: 0,
     avgSessionTime: 0,
     systemHealth: "loading",
-  })
-  const [recentActivity, setRecentActivity] = useState([])
+  });
+  const [recentActivity, setRecentActivity] = useState([]);
   const [systemInfo, setSystemInfo] = useState({
     database: "loading",
     server: "loading",
     lastBackup: "loading",
-  })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [lastRefresh, setLastRefresh] = useState(new Date())
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [usageTrends, setUsageTrends] = useState([]);
 
   useEffect(() => {
-    fetchAllAdminData()
+    fetchAllAdminData();
 
     // Actualiser les données toutes les 30 secondes
-    const interval = setInterval(fetchAllAdminData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(fetchAllAdminData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchAllAdminData = async () => {
     try {
-      setError("")
+      setError("");
 
       // Récupérer toutes les données en parallèle
-      const [statsResponse, activityResponse, systemResponse] = await Promise.all([
-        adminAPI.getAdminStats().catch(() => ({ data: null })),
-        adminAPI.getRecentActivity().catch(() => ({ data: [] })),
-        adminAPI.getSystemHealth().catch(() => ({ data: null })),
-      ])
+      const [statsResponse, activityResponse, systemResponse, trendsResponse] = await Promise.all([
+        adminAPI.getAdminStats().catch((error) => {
+          console.error("Erreur getAdminStats:", error);
+          return { data: null };
+        }),
+        adminAPI.getRecentActivity().catch((error) => {
+          console.error("Erreur getRecentActivity:", error);
+          return { data: [] };
+        }),
+        adminAPI.getSystemHealth().catch((error) => {
+          console.error("Erreur getSystemHealth:", error);
+          return { data: null };
+        }),
+        adminAPI.getUsageTrends().catch((error) => {
+          console.error("Erreur getUsageTrends:", error);
+          return [];
+        }),
+      ]);
 
       // Traiter les statistiques
       if (statsResponse.data) {
@@ -63,7 +78,7 @@ const AdminDashboard = () => {
           totalSessions: statsResponse.data.total_sessions || 0,
           avgSessionTime: statsResponse.data.avg_session_time || 0,
           systemHealth: statsResponse.data.system_health || "good",
-        })
+        });
       }
 
       // Traiter l'activité récente
@@ -77,7 +92,7 @@ const AdminDashboard = () => {
             type: activity.type || getActivityType(activity.action),
             details: activity.details || "",
           })),
-        )
+        );
       }
 
       // Traiter les informations système
@@ -86,94 +101,102 @@ const AdminDashboard = () => {
           database: systemResponse.data.database_status || "operational",
           server: systemResponse.data.server_status || "online",
           lastBackup: systemResponse.data.last_backup || "Unknown",
-        })
+        });
       }
 
-      setLastRefresh(new Date())
+      // Traiter les tendances d'utilisation
+      if (Array.isArray(trendsResponse.data)) {
+        setUsageTrends(trendsResponse.data); // Accéder à data car axios renvoie { data: ... }
+      } else {
+        setUsageTrends(trendsResponse); // Cas d'erreur où c'est déjà un tableau vide
+      }
+
+      console.log("Réponse de getUsageTrends:", trendsResponse);
+      setLastRefresh(new Date());
     } catch (error) {
-      console.error("Erreur lors du chargement des données admin:", error)
-      setError("Erreur lors du chargement des données. Vérifiez que le backend est démarré.")
+      console.error("Erreur globale fetchAllAdminData:", error);
+      setError("Erreur lors du chargement des données. Vérifiez que le backend est démarré.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const formatTimeAgo = (timestamp) => {
-    if (!timestamp) return "Inconnu"
+    if (!timestamp) return "Inconnu";
 
-    const now = new Date()
-    const time = new Date(timestamp)
-    const diffInMinutes = Math.floor((now - time) / (1000 * 60))
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
 
-    if (diffInMinutes < 1) return "À l'instant"
-    if (diffInMinutes < 60) return `Il y a ${diffInMinutes} min`
+    if (diffInMinutes < 1) return "À l'instant";
+    if (diffInMinutes < 60) return `Il y a ${diffInMinutes} min`;
 
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) return `Il y a ${diffInHours}h`
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `Il y a ${diffInHours}h`;
 
-    const diffInDays = Math.floor(diffInHours / 24)
-    return `Il y a ${diffInDays} jour${diffInDays > 1 ? "s" : ""}`
-  }
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `Il y a ${diffInDays} jour${diffInDays > 1 ? "s" : ""}`;
+  };
 
   const getActivityType = (action) => {
-    if (action.toLowerCase().includes("connexion") || action.toLowerCase().includes("login")) return "login"
-    if (action.toLowerCase().includes("déconnexion") || action.toLowerCase().includes("logout")) return "logout"
-    if (action.toLowerCase().includes("session")) return "session"
-    if (action.toLowerCase().includes("admin") || action.toLowerCase().includes("modification")) return "admin"
-    if (action.toLowerCase().includes("system") || action.toLowerCase().includes("sauvegarde")) return "system"
-    return "other"
-  }
+    if (action.toLowerCase().includes("connexion") || action.toLowerCase().includes("login")) return "login";
+    if (action.toLowerCase().includes("déconnexion") || action.toLowerCase().includes("logout")) return "logout";
+    if (action.toLowerCase().includes("session")) return "session";
+    if (action.toLowerCase().includes("admin") || action.toLowerCase().includes("modification")) return "admin";
+    if (action.toLowerCase().includes("system") || action.toLowerCase().includes("sauvegarde")) return "system";
+    return "other";
+  };
 
   const getActivityIcon = (type) => {
     switch (type) {
       case "login":
-        return <CheckCircle className="w-4 h-4 text-green-600" />
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
       case "logout":
-        return <AlertTriangle className="w-4 h-4 text-orange-600" />
+        return <AlertTriangle className="w-4 h-4 text-orange-600" />;
       case "session":
-        return <Activity className="w-4 h-4 text-blue-600" />
+        return <Activity className="w-4 h-4 text-blue-600" />;
       case "admin":
-        return <Shield className="w-4 h-4 text-purple-600" />
+        return <Shield className="w-4 h-4 text-purple-600" />;
       case "system":
-        return <Settings className="w-4 h-4 text-gray-600" />
+        return <Settings className="w-4 h-4 text-gray-600" />;
       default:
-        return <Activity className="w-4 h-4 text-gray-600" />
+        return <Activity className="w-4 h-4 text-gray-600" />;
     }
-  }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case "operational":
       case "online":
       case "good":
-        return "text-green-600"
+        return "text-green-600";
       case "warning":
-        return "text-yellow-600"
+        return "text-yellow-600";
       case "error":
       case "offline":
-        return "text-red-600"
+        return "text-red-600";
       default:
-        return "text-gray-600"
+        return "text-gray-600";
     }
-  }
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case "operational":
       case "online":
       case "good":
-        return <CheckCircle className="w-4 h-4" />
+        return <CheckCircle className="w-4 h-4" />;
       case "loading":
-        return <RefreshCw className="w-4 h-4 animate-spin" />
+        return <RefreshCw className="w-4 h-4 animate-spin" />;
       default:
-        return <AlertTriangle className="w-4 h-4" />
+        return <AlertTriangle className="w-4 h-4" />;
     }
-  }
+  };
 
   const handleRefresh = () => {
-    setLoading(true)
-    fetchAllAdminData()
-  }
+    setLoading(true);
+    fetchAllAdminData();
+  };
 
   if (loading && recentActivity.length === 0) {
     return (
@@ -183,7 +206,7 @@ const AdminDashboard = () => {
           <p className="text-gray-600">Chargement des données administrateur...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -221,7 +244,7 @@ const AdminDashboard = () => {
       )}
 
       {/* Stats principales */}
-      <div className="grid grid-cols-1 md-grid-cols-2 lg-grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="card p-6 bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
           <div className="flex items-center">
             <Users className="w-12 h-12 text-blue-600" />
@@ -263,9 +286,9 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid lg-grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Activité récente */}
-        <div className="lg-col-span-2">
+        <div className="lg:col-span-2">
           <div className="card">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -385,18 +408,30 @@ const AdminDashboard = () => {
       </div>
 
       {/* Graphiques et statistiques avancées */}
-      <div className="grid md-grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6">
         <div className="card p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <TrendingUp className="w-5 h-5 mr-2" />
             Tendances d'utilisation
           </h3>
           <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <BarChart3 className="w-12 h-12 mx-auto mb-2" />
-              <p>Graphique des tendances</p>
-              <p className="text-sm">Données réelles à venir</p>
-            </div>
+            {usageTrends.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={usageTrends} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="active_users" fill="#3b82f6" name="Utilisateurs actifs" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center text-gray-500">
+                <BarChart3 className="w-12 h-12 mx-auto mb-2" />
+                <p>Graphique des tendances</p>
+                <p className="text-sm">Aucune donnée disponible</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -415,7 +450,7 @@ const AdminDashboard = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminDashboard
+export default AdminDashboard;

@@ -57,6 +57,26 @@ cursor.execute('''
     )
 ''')
 
+# 6. Corriger les user_id NULL dans usage (si nécessaire)
+cursor.execute("UPDATE usage SET user_id = 1 WHERE user_id IS NULL")
+print("✅ Valeurs NULL de user_id dans usage mises à jour avec user_id 1")
+
+# 7. Insérer des données de test dans usage
+test_data = [
+    (1, "App1", "2025-07-29 11:30:33", 3600),  # user_id 1, 1 heure
+    (2, "App2", "2025-07-29 12:00:00", 1800),  # user_id 2, 30 minutes
+]
+cursor.executemany('''
+    INSERT INTO usage (user_id, app_name, start_time, duration)
+    VALUES (?, ?, ?, ?)
+''', test_data)
+print("✅ Données de test insérées dans la table usage")
+
+# 8. Vérifier le nombre d'enregistrements dans usage
+cursor.execute("SELECT COUNT(*) FROM usage")
+usage_count = cursor.fetchone()[0]
+print(f"ℹ️ Nombre d'enregistrements dans usage : {usage_count}")
+
 conn.commit()
 conn.close()
 print("✅ Initialisation terminée.")

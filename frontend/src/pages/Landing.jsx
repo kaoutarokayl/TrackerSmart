@@ -353,7 +353,7 @@ const Landing = () => {
                       value={contactForm.phone}
                       onChange={handleContactChange}
                       className="form-input form-input-enhanced"
-                      placeholder="Ex: 0707756272"
+                      placeholder="Ex: 06********"
                       required
                     />
                   </div>
@@ -441,11 +441,11 @@ const Landing = () => {
                   </div>
                   <div className="flex items-center">
                     <Phone className="w-5 h-5 text-green-600 mr-3" />
-                    <span className="text-gray-700">+33 1 23 45 67 89</span>
+                    <span className="text-gray-700">+212 707756272</span>
                   </div>
                   <div className="flex items-center">
                     <MapPin className="w-5 h-5 text-red-600 mr-3" />
-                    <span className="text-gray-700">Paris, France</span>
+                    <span className="text-gray-700">Casblanca, Maroc</span>
                   </div>
                 </div>
               </div>

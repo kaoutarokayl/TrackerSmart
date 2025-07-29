@@ -1,0 +1,50 @@
+"use client"
+
+import { useAuth } from "../context/AuthContext"
+import { Play, Square, Activity } from "lucide-react"
+
+const TrackerStatus = () => {
+  const { trackerStatus, startTracker, stopTracker, user } = useAuth()
+
+  const handleToggleTracker = async () => {
+    if (trackerStatus === "running") {
+      await stopTracker()
+    } else {
+      await startTracker()
+    }
+  }
+
+  return (
+    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+      <div className="flex items-center">
+        <Activity className={`w-5 h-5 mr-2 ${trackerStatus === "running" ? "text-green-600" : "text-gray-400"}`} />
+        <span className="text-sm font-medium text-gray-700">
+          Tracker: {trackerStatus === "running" ? "Actif" : "Arrêté"}
+        </span>
+      </div>
+
+      <button
+        onClick={handleToggleTracker}
+        className={`flex items-center px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+          trackerStatus === "running"
+            ? "bg-red-100 text-red-700 hover:bg-red-200"
+            : "bg-green-100 text-green-700 hover:bg-green-200"
+        }`}
+      >
+        {trackerStatus === "running" ? (
+          <>
+            <Square className="w-4 h-4 mr-1" />
+            Arrêter
+          </>
+        ) : (
+          <>
+            <Play className="w-4 h-4 mr-1" />
+            Démarrer
+          </>
+        )}
+      </button>
+    </div>
+  )
+}
+
+export default TrackerStatus

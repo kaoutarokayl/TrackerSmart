@@ -103,15 +103,21 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="card p-6">
-          <div className="flex items-center">
-            <Monitor className="icon-lg text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">App la plus utilisée</p>
-              <p className="text-lg font-bold text-gray-900 truncate">{stats.mostUsedApp || "Aucune"}</p>
-            </div>
-          </div>
-        </div>
+<div className="card p-6">
+  <div className="flex items-center">
+    <Monitor className="icon-lg text-green-600" />
+    <div className="ml-4 max-w-full">
+      <p className="text-sm font-medium text-gray-600">App la plus utilisée</p>
+      <p
+        className="text-lg font-bold text-gray-900 max-w-full break-words whitespace-normal"
+        style={{ wordBreak: 'break-word' }}
+      >
+        {stats.mostUsedApp || "Aucune"}
+      </p>
+    </div>
+  </div>
+</div>
+
 
         <div className="card p-6">
           <div className="flex items-center">

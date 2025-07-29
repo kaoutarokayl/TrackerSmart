@@ -1,6 +1,6 @@
-import axios from "axios"
+import axios from "axios";
 
-const API_BASE_URL = "http://127.0.0.1:5000"
+const API_BASE_URL = "http://127.0.0.1:5000";
 
 // Configuration axios avec intercepteur pour le token
 const api = axios.create({
@@ -8,45 +8,56 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-})
+});
 
 // Intercepteur pour ajouter le token automatiquement
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token")
+    const token = localStorage.getItem("token");
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return config
+    return config;
   },
   (error) => {
-    return Promise.reject(error)
+    return Promise.reject(error);
   },
-)
+);
 
 // Intercepteur pour gérer les erreurs d'authentification
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       // Rediriger vers la page d'accueil au lieu de la page de connexion
-      window.location.href = "/"
+      window.location.href = "/";
     }
-    return Promise.reject(error)
+    return Promise.reject(error);
   },
-)
+);
 
 export const authAPI = {
   login: (credentials) => api.post("/login", credentials),
   register: (userData) => api.post("/register", userData),
-}
+};
+
+export const trackerAPI = {
+  // Démarrer le tracker
+  start: () => api.post("/tracker/start"),
+
+  // Arrêter le tracker
+  stop: () => api.post("/tracker/stop"),
+
+  // Statut du tracker
+  status: () => api.get("/tracker/status"),
+};
 
 export const usageAPI = {
   getUserUsage: (userId) => api.get(`/usage/${userId}`),
   getAdminUsers: () => api.get("/admin/users"),
-}
+};
 
 export const adminAPI = {
   // Statistiques générales admin
@@ -60,6 +71,9 @@ export const adminAPI = {
 
   // Données système
   getSystemHealth: () => api.get("/admin/system/health"),
-}
 
-export default api
+  // 📈 Tendances d'utilisation (utilisateurs actifs par jour sur 7 jours)
+  getUsageTrends: () => api.get("/admin/usage-trends"),
+};
+
+export default api;

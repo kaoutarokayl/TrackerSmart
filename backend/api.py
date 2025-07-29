@@ -4,6 +4,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import jwt
 import datetime
+import subprocess
+import threading
+from tracker import start_tracker_for_user, stop_tracker_for_user, is_tracker_running
 from functools import wraps
 
 app = Flask(__name__)
@@ -45,6 +48,59 @@ def token_required(f):
         except jwt.InvalidTokenError:
             return jsonify({'message': 'Token invalide'}), 401
     return decorated
+
+# 🎯 Démarrer le tracker pour un utilisateur
+@app.route('/tracker/start', methods=['POST'])
+@token_required
+def start_user_tracker(user_id, role):
+    try:
+        success = start_tracker_for_user(user_id)
+        if success:
+            return jsonify({
+                'message': 'Tracker démarré avec succès',
+                'user_id': user_id,
+                'status': 'running'
+            })
+        else:
+            return jsonify({
+                'message': 'Tracker déjà actif',
+                'user_id': user_id,
+                'status': 'already_running'
+            })
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du démarrage: {str(e)}'}), 500
+
+# ⏹️ Arrêter le tracker pour un utilisateur
+@app.route('/tracker/stop', methods=['POST'])
+@token_required
+def stop_user_tracker(user_id, role):
+    try:
+        success = stop_tracker_for_user(user_id)
+        if success:
+            return jsonify({
+                'message': 'Tracker arrêté avec succès',
+                'user_id': user_id,
+                'status': 'stopped'
+            })
+        else:
+            return jsonify({
+                'message': 'Tracker non actif',
+                'user_id': user_id,
+                'status': 'not_running'
+            })
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors de l\'arrêt: {str(e)}'}), 500
+
+# 📊 Statut du tracker
+@app.route('/tracker/status', methods=['GET'])
+@token_required
+def get_tracker_status(user_id, role):
+    running = is_tracker_running(user_id)
+    return jsonify({
+        'user_id': user_id,
+        'status': 'running' if running else 'stopped',
+        'is_running': running
+    })
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -249,5 +305,57 @@ def get_system_health(user_id, role):
         'last_backup': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     })
 
+# 📈 Tendances d'utilisation (utilisateurs actifs par jour sur 7 jours)
+@app.route('/admin/usage-trends', methods=['GET'])
+@token_required
+def get_usage_trends(user_id, role):
+    if role != 'admin':
+        return jsonify({'message': 'Accès refusé'}), 403
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    today = datetime.datetime.now().date()  # Utilise l'heure locale actuelle
+    trends = []
+
+    for i in range(6, -1, -1):
+        day = today - datetime.timedelta(days=i)
+        # Ajouter un débogage pour vérifier les timestamps bruts
+        cursor.execute(
+            "SELECT user_id, start_time FROM usage WHERE DATE(start_time) = ?",
+            (day.strftime("%Y-%m-%d"),)
+        )
+        rows = cursor.fetchall()
+        print(f"Debug - Date: {day}, Raw Rows: {rows}")
+        # Vérifier tous les timestamps pour ce jour
+        cursor.execute(
+            "SELECT user_id, start_time FROM usage WHERE start_time LIKE ?",
+            (f"{day.strftime('%Y-%m-%d')}%",)
+        )
+        raw_timestamps = cursor.fetchall()
+        print(f"Debug - Date: {day}, Raw Timestamps: {raw_timestamps}")
+        cursor.execute(
+            "SELECT COUNT(DISTINCT user_id) as active_users FROM usage WHERE DATE(start_time) = ?",
+            (day.strftime("%Y-%m-%d"),)
+        )
+        count = cursor.fetchone()["active_users"]
+        print(f"Debug - Count for {day}: {count}")
+        trends.append({
+            "date": day.strftime("%Y-%m-%d"),
+            "active_users": count if count else 0
+        })
+
+    conn.close()
+    return jsonify(trends)
+
+# Ajouter un index sur start_time pour optimiser les requêtes
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_start_time ON usage (start_time)')
+    conn.commit()
+    conn.close()
+
 if __name__ == '__main__':
+    init_db()  # Créer l'index au démarrage
     app.run(debug=True)
