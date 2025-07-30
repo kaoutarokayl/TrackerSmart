@@ -21,10 +21,13 @@ class UsageTracker:
         try:
             window = gw.getActiveWindow()
             if window:
-                return window.title
+                # Normaliser le nom de l'application
+                raw_app_name = window.title
+                normalized_name = app_normalizer.normalize_app_name(raw_app_name)
+                return normalized_name
         except:
             pass
-        return "Unknown"
+        return "Application inconnue"
 
     def format_duration(self, seconds):
         if seconds >= 3600:

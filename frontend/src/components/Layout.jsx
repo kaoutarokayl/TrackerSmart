@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "../context/AuthContext"
-import { LogOut, User, BarChart3, Users, Home, Shield } from "lucide-react"
+import { LogOut, User, BarChart3, Users, Home, Shield, Settings } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
 const Layout = ({ children }) => {
@@ -23,7 +23,6 @@ const Layout = ({ children }) => {
   const isActive = (path) => location.pathname === path
 
   const handleLogout = () => {
-    // Afficher une confirmation avant de se déconnecter
     if (window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
       logout()
     }

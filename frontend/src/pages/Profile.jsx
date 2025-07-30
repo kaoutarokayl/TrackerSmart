@@ -1,20 +1,34 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "../context/AuthContext"
 import { User, Shield, Edit3, Save, X, Eye, EyeOff } from "lucide-react"
 
 const Profile = () => {
+
   const { user } = useAuth()
-  const [isEditing, setIsEditing] = useState(false)
-  const [showPasswordChange, setShowPasswordChange] = useState(false)
+  console.log("User dans Profile.jsx :", user)
+
+
+  // Synchroniser formData.email avec user.email au chargement / changement de user
   const [formData, setFormData] = useState({
     username: user?.username || "",
-    email: user?.email || "user@example.com",
+    email: user?.email || "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   })
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      username: user?.username || "",
+      email: user?.email || "",
+    }))
+  }, [user])
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [showPasswordChange, setShowPasswordChange] = useState(false)
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,

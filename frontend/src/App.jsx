@@ -10,32 +10,7 @@ import Dashboard from "./pages/Dashboard"
 import Stats from "./pages/Stats"
 import AdminUsers from "./pages/AdminUsers"
 import AdminDashboard from "./pages/AdminDashboard"
-
-// Créer un composant Profile temporaire en attendant
-const Profile = () => {
-  const { user } = useAuth()
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mon Profil</h1>
-        <p className="text-gray-600">Page de profil en cours de développement</p>
-      </div>
-
-      <div className="card p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Informations utilisateur</h2>
-        <div className="space-y-2">
-          <p>
-            <strong>Nom d'utilisateur:</strong> {user?.username}
-          </p>
-          <p>
-            <strong>Rôle:</strong> {user?.role}
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
+import Profile from "./pages/Profile"
 
 const AppRoutes = () => {
   const { isAuthenticated } = useAuth()
@@ -83,7 +58,6 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Ajouter les nouvelles routes dans AppRoutes */}
       <Route
         path="/profile"
         element={

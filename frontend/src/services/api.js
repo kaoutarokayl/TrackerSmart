@@ -13,6 +13,7 @@ const api = axios.create({
 // Intercepteur pour ajouter le token automatiquement
 api.interceptors.request.use(
   (config) => {
+    console.log(`🚀 Requête envoyée: ${config.method?.toUpperCase()} ${config.url}`);
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -20,14 +21,19 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error("❌ Erreur dans l'intercepteur de requête:", error);
     return Promise.reject(error);
   },
 );
 
 // Intercepteur pour gérer les erreurs d'authentification
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`✅ Réponse reçue: ${response.status} ${response.config.url}`);
+    return response;
+  },
   (error) => {
+    console.error(`❌ Erreur de réponse: ${error.response?.status} ${error.config?.url}`, error.message);
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -57,23 +63,26 @@ export const trackerAPI = {
 export const usageAPI = {
   getUserUsage: (userId) => api.get(`/usage/${userId}`),
   getAdminUsers: () => api.get("/admin/users"),
+  categorizeApp: (appName) => api.get(`/categorize/${encodeURIComponent(appName)}`), // Nouvelle méthode ajoutée
 };
 
 export const adminAPI = {
   // Statistiques générales admin
-  getAdminStats: () => api.get("/admin/stats"),
+  getAdminStats: (timeRange = "7") => api.get(`/admin/stats?time_range=${timeRange}`),
 
   // Activité récente
-  getRecentActivity: () => api.get("/admin/activity"),
+  getRecentActivity: (timeRange = "7") => api.get(`/admin/activity?time_range=${timeRange}`),
 
   // Utilisateurs avec leurs statistiques
-  getUsersWithStats: () => api.get("/admin/users/stats"),
+  getUsersWithStats: (timeRange = "7") => api.get(`/admin/users/stats?time_range=${timeRange}`),
 
   // Données système
   getSystemHealth: () => api.get("/admin/system/health"),
 
   // 📈 Tendances d'utilisation (utilisateurs actifs par jour sur 7 jours)
-  getUsageTrends: () => api.get("/admin/usage-trends"),
+  getUsageTrends: (timeRange = "7") => api.get(`/admin/usage-trends?time_range=${timeRange}`),
 };
+
+
 
 export default api;

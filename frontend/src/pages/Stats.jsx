@@ -15,13 +15,15 @@ const Stats = () => {
   const [timeRange, setTimeRange] = useState("7") // 7 jours par défaut
 
   useEffect(() => {
-    fetchUsageData()
-  }, [])
+    fetchData()
+  }, [timeRange])
 
-  const fetchUsageData = async () => {
+  const fetchData = async () => {
     try {
-      const response = await usageAPI.getUserUsage(user.id)
-      setUsageData(response.data)
+      setLoading(true)
+      // Récupérer les données d'utilisation de l'utilisateur connecté
+      const userUsageResponse = await usageAPI.getUserUsage(user.id)
+      setUsageData(userUsageResponse.data)
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error)
     } finally {
@@ -33,6 +35,14 @@ const Stats = () => {
     const now = new Date()
     const daysAgo = new Date(now.getTime() - Number.parseInt(timeRange) * 24 * 60 * 60 * 1000)
     return data.filter((item) => new Date(item.start_time) >= daysAgo)
+  }
+
+  const categorizeApp = (appName) => {
+    const lowerAppName = appName.toLowerCase()
+    if (["vscode", "react", "profile", "dashboard"].some(keyword => lowerAppName.includes(keyword))) return "Travail"
+    if (["youtube", "tiktok", "netflix"].some(keyword => lowerAppName.includes(keyword))) return "Divertissement"
+    if (["facebook", "twitter", "instagram"].some(keyword => lowerAppName.includes(keyword))) return "Social"
+    return "Autre"
   }
 
   const getAppUsageData = () => {
@@ -54,17 +64,31 @@ const Stats = () => {
           label: "Temps d'utilisation (secondes)",
           data: sortedApps.map(([, duration]) => duration),
           backgroundColor: [
-            "#3B82F6",
-            "#EF4444",
-            "#10B981",
-            "#F59E0B",
-            "#8B5CF6",
-            "#EC4899",
-            "#06B6D4",
-            "#84CC16",
-            "#F97316",
-            "#6366F1",
+            "#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#8B5CF6",
+            "#EC4899", "#06B6D4", "#84CC16", "#F97316", "#6366F1",
           ],
+          borderWidth: 1,
+        },
+      ],
+    }
+  }
+
+  const getCategoryUsageData = () => {
+    const filteredData = filterDataByTimeRange(usageData)
+    const categoryUsage = {}
+
+    filteredData.forEach((item) => {
+      const category = categorizeApp(item.app_name)
+      categoryUsage[category] = (categoryUsage[category] || 0) + item.duration
+    })
+
+    return {
+      labels: Object.keys(categoryUsage),
+      datasets: [
+        {
+          label: "Temps par catégorie (secondes)",
+          data: Object.values(categoryUsage),
+          backgroundColor: ["#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#6366F1"],
           borderWidth: 1,
         },
       ],
@@ -104,12 +128,7 @@ const Stats = () => {
   const formatDuration = (seconds) => {
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`
-    } else {
-      return `${minutes}m`
-    }
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
   }
 
   const chartOptions = {
@@ -161,13 +180,12 @@ const Stats = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* En-tête */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Statistiques d'utilisation</h1>
-          <p className="text-gray-600">Analysez votre temps d'écran</p>
+          <h1 className="text-2xl font-bold text-gray-900">Mes Statistiques d'utilisation</h1>
+          <p className="text-gray-600">Analysez votre temps d'écran personnel</p>
         </div>
-
         <select
           value={timeRange}
           onChange={(e) => setTimeRange(e.target.value)}
@@ -180,17 +198,20 @@ const Stats = () => {
         </select>
       </div>
 
-      {/* Charts */}
+      {/* Graphiques utilisateur connecté */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Applications les plus utilisées */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Applications les plus utilisées</h2>
           <div className="h-80">
             <Doughnut data={getAppUsageData()} options={doughnutOptions} />
           </div>
         </div>
-
-        {/* Utilisation quotidienne */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Utilisation par catégorie</h2>
+          <div className="h-80">
+            <Doughnut data={getCategoryUsageData()} options={doughnutOptions} />
+          </div>
+        </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Utilisation quotidienne</h2>
           <div className="h-80">
@@ -199,7 +220,7 @@ const Stats = () => {
         </div>
       </div>
 
-      {/* Tableau détaillé */}
+      {/* Tableau détaillé de l'utilisateur connecté */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Détail par application ({timeRange} derniers jours)</h2>
@@ -208,18 +229,10 @@ const Stats = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Application
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Temps total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sessions
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Temps moyen/session
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Application</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temps total</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sessions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temps moyen/session</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -246,9 +259,7 @@ const Stats = () => {
                       <div className="text-sm text-gray-900">{data.sessions}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {formatDuration(Math.round(data.totalTime / data.sessions))}
-                      </div>
+                      <div className="text-sm text-gray-900">{formatDuration(Math.round(data.totalTime / data.sessions))}</div>
                     </td>
                   </tr>
                 ))}
