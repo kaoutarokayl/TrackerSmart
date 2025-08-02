@@ -34,8 +34,10 @@ const Stats = () => {
   const filterDataByTimeRange = (data) => {
     const now = new Date()
     const daysAgo = new Date(now.getTime() - Number.parseInt(timeRange) * 24 * 60 * 60 * 1000)
-    return data.filter((item) => new Date(item.start_time) >= daysAgo)
-  }
+  return data
+    .filter(item => item.app_name && !["application inconnue", "unknown"].includes(item.app_name.toLowerCase()))
+    .filter(item => new Date(item.start_time) >= daysAgo)
+}
 
   const categorizeApp = (appName) => {
     const lowerAppName = appName.toLowerCase()

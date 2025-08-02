@@ -28,6 +28,8 @@ const Dashboard = () => {
         console.log("Tentative de chargement des données pour user.id:", user.id)
         const response = await usageAPI.getUserUsage(user.id)
         const data = response.data.slice(0, 50)
+                  .filter(item => item.app_name !== "unknown" && item.app_name !== "Application inconnue") // 🟡 MODIFICATION
+
         console.log("Données chargées (app_names):", data.map(item => item.app_name))
         if (isMounted) {
           setUsageData(data)
@@ -150,7 +152,10 @@ const categorizeApp = async (appName) => {
   }
 
   const getRecentSessions = () => {
-    return usageData.sort((a, b) => new Date(b.start_time) - new Date(a.start_time)).slice(0, 10)
+    return usageData
+      .filter(item => item.app_name !== "unknown" && item.app_name !== "Application inconnue") // 🟡 MODIFICATION
+      .sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
+      .slice(0, 10)
   }
 
   if (loading) {

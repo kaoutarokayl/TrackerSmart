@@ -9,10 +9,10 @@ import threading
 import joblib
 from tracker import start_tracker_for_user, stop_tracker_for_user, is_tracker_running
 from functools import wraps
+import pandas as pd
 
 app = Flask(__name__)
 CORS(app)
-
 
 # 🧩 Clé secrète pour signer les tokens JWT
 app.config['SECRET_KEY'] = '1e1c9bc44ba69983f48ae547464a6d8b3fdbdb0736d59ad06d8b39c0c14df1b3'
@@ -226,9 +226,14 @@ def get_admin_stats(user_id, role):
         'avg_session_time': avg_session_time,
         'system_health': 'good'
     })
+
 # Chargement du modèle et du vectoriseur
 model = joblib.load("category_model.joblib")
 vectorizer = joblib.load("vectorizer.joblib")
+
+# Chargement des catégories CSV pour fallback
+app_categories = pd.read_csv("app_categories.csv")
+app_category_map = dict(zip(app_categories["app_name"], app_categories["category"]))
 
 @app.route('/categorize/<app_name>', methods=['GET'])
 def categorize_app(app_name):
@@ -240,19 +245,11 @@ def categorize_app(app_name):
         return jsonify({"app_name": app_name, "category": category})
     except Exception as e:
         print(f"❌ Erreur modèle pour {app_name}: {str(e)}")
-        # Logique de secours basée sur des mots-clés
-        lower_app = app_name.lower()
-        if any(keyword in lower_app for keyword in ["vscode", "notion", "slack"]): 
-            print(f"🔄 Utilisation de la logique de secours pour {app_name}: Travail")
-            return jsonify({"app_name": app_name, "category": "Travail"})
-        elif any(keyword in lower_app for keyword in ["youtube", "netflix"]): 
-            print(f"🔄 Utilisation de la logique de secours pour {app_name}: Divertissement")
-            return jsonify({"app_name": app_name, "category": "Divertissement"})
-        elif any(keyword in lower_app for keyword in ["facebook", "whatsapp"]): 
-            print(f"🔄 Utilisation de la logique de secours pour {app_name}: Social")
-            return jsonify({"app_name": app_name, "category": "Social"})
-        print(f"❓ Aucune catégorie trouvée pour {app_name}, retour: Non catégorisé")
-        return jsonify({"app_name": app_name, "category": "Non catégorisé"})
+        # Fallback avec CSV si le modèle échoue
+        category = app_category_map.get(app_name, "Non catégorisé")
+        print(f"🔄 Utilisation de la catégorie CSV pour {app_name}: {category}")
+        return jsonify({"app_name": app_name, "category": category})
+
 @app.route('/categorize/batch', methods=['POST'])
 def categorize_batch():
     data = request.get_json()
@@ -260,6 +257,7 @@ def categorize_batch():
     X_new = vectorizer.transform(app_names)
     categories = model.predict(X_new)
     return jsonify({app_name: category for app_name, category in zip(app_names, categories)})
+
 # 📈 Activité récente
 @app.route('/admin/activity', methods=['GET'])
 @token_required
@@ -339,6 +337,7 @@ def get_system_health(user_id, role):
         'server_status': 'online',
         'last_backup': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
     })
+
 @app.route('/admin/users/stats', methods=['GET'])
 @token_required
 def get_users_with_stats(user_id, role):
@@ -370,6 +369,7 @@ def get_users_with_stats(user_id, role):
         })
     conn.close()
     return jsonify({'users_stats': users_stats})
+
 # 📈 Tendances d'utilisation (utilisateurs actifs par jour sur 7 jours)
 @app.route('/admin/usage-trends', methods=['GET'])
 @token_required
