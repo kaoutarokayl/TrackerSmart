@@ -39,18 +39,43 @@ class UsageTracker:
         else:
             return f"{seconds}s"
 
+    def normalize_app_name(self, app_name):
+        if app_name is None:
+            return None
+        name_map = {
+            "Visual Studio Code": "VS Code",
+            "Code - Visual Studio Code": "VS Code",
+            "Google Chrome": "Chrome",
+            "Microsoft Edge": "Edge",
+            "Mozilla Firefox": "Firefox",
+            "Visual Studio": "VS Code",  # Variantes possibles
+            "Chrome": "Chrome",
+            "Firefox": "Firefox",
+            "Edge": "Edge",
+            "Microsoft Word": "Word",    # Exemple supplémentaire
+            "Notepad": "Notepad",       # Exemple supplémentaire
+            # Ajoute d'autres mappings selon tes besoins
+        }
+        # Si le nom n'est pas dans name_map, tente de nettoyer avec split
+        cleaned_name = name_map.get(app_name, app_name.split(' - ').pop().strip() if '-' in app_name else app_name)
+        return cleaned_name
+
     def save_session(self, app_name, start_time, duration):
         if app_name is None:
-            return  # ← Ignore les applications inconnues
+            return  # Ignore les applications inconnues
+
+        normalized_app_name = self.normalize_app_name(app_name)
+        if normalized_app_name is None:
+            return  # Ignore si la normalisation échoue
 
         timestamp = datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute('''
             INSERT INTO usage (app_name, start_time, duration, user_id)
             VALUES (?, ?, ?, ?)
-        ''', (app_name, timestamp, duration, self.user_id))
+        ''', (normalized_app_name, timestamp, duration, self.user_id))
         self.conn.commit()
 
-        print(f"[{timestamp}] {app_name} utilisé pendant {self.format_duration(duration)}")
+        print(f"[{timestamp}] {normalized_app_name} utilisé pendant {self.format_duration(duration)}")
 
     def start_tracking(self):
         self.running = True
