@@ -137,7 +137,6 @@ def login():
     user = cursor.fetchone()
     
     if user and check_password_hash(user["password_hash"], password):
-        # Mettre à jour la dernière connexion
         cursor.execute(
             "UPDATE users SET last_login = ? WHERE id = ?", 
             (datetime.datetime.now().isoformat(), user["id"])
@@ -148,7 +147,13 @@ def login():
         conn.close()
         return jsonify({
             "message": "Connexion réussie",
-            "token": token
+            "token": token,
+            "user": {
+                "id": user["id"],
+                "username": user["username"],
+                "email": user["email"],  
+                "role": user["role"]
+            }
         })
     
     conn.close()

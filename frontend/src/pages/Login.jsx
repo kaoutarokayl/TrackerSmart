@@ -34,17 +34,9 @@ const Login = () => {
 
     try {
       const response = await authAPI.login(formData)
-      const { token } = response.data
+      const { token, user } = response.data // Utiliser l'objet 'user' de la réponse API
 
-      // Décoder le token pour obtenir les infos utilisateur
-      const payload = JSON.parse(atob(token.split(".")[1]))
-      const userData = {
-        id: payload.user_id,
-        username: formData.username,
-        role: payload.role,
-      }
-
-      login(userData, token)
+      login(user, token) // Passer l'objet 'user' complet
       navigate("/dashboard")
     } catch (error) {
       setError(error.response?.data?.error || "Erreur de connexion")
@@ -57,14 +49,16 @@ const Login = () => {
   const fillAdminCredentials = () => {
     setFormData({
       username: "admin",
+      email:"admin@gmail.com",
       password: "admin123",
+
     })
   }
 
   return (
     <div className="min-h-screen flex">
       {/* Section gauche - Informations sur l'entreprise */}
-      <div className="hidden lg-flex lg-w-1/2 bg-gradient-primary relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-primary relative overflow-hidden">
         <div className="absolute inset-0 bg-pattern opacity-10"></div>
         <div className="relative z-10 flex flex-col justify-center px-12 text-white">
           {/* Logo et nom de l'entreprise */}
@@ -116,10 +110,10 @@ const Login = () => {
       </div>
 
       {/* Section droite - Formulaire de connexion */}
-      <div className="w-full lg-w-1/2 flex items-center justify-center bg-gray-50 px-4 sm-px-6 lg-px-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           {/* Header mobile */}
-          <div className="lg-hidden text-center mb-8">
+          <div className="lg:hidden text-center mb-8">
             <div className="flex items-center justify-center mb-4">
               <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                 <BarChart3 className="w-6 h-6 text-white" />
@@ -143,7 +137,7 @@ const Login = () => {
             <button
               type="button"
               onClick={() => setShowTestInfo(!showTestInfo)}
-              className="flex items-center text-sm text-blue-600 hover-text-blue-800 transition-colors"
+              className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
             >
               <Info className="w-4 h-4 mr-1" />
               {showTestInfo ? "Masquer" : "Afficher"} les informations de test
@@ -162,7 +156,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={fillAdminCredentials}
-                    className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover-bg-blue-700 transition-colors"
+                    className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors"
                   >
                     Utiliser 🚀
                   </button>
@@ -217,7 +211,7 @@ const Login = () => {
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center hover-text-blue-600 transition-colors"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-blue-600 transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="icon text-gray-400" /> : <Eye className="icon text-gray-400" />}
@@ -238,7 +232,7 @@ const Login = () => {
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Nouveau chez ERTC Technologies ?{" "}
-                <Link to="/register" className="font-medium text-blue-600 hover-text-blue-500 transition-colors">
+                <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
                   Créer un compte 📝
                 </Link>
               </p>
