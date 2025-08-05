@@ -64,6 +64,10 @@ export const usageAPI = {
   getUserUsage: (userId) => api.get(`/usage/${userId}`),
   getAdminUsers: () => api.get("/admin/users"),
   categorizeApp: (appName) => api.get(`/categorize/${encodeURIComponent(appName)}`), // Nouvelle méthode ajoutée
+  updateUser: (userId, data) => api.post(`/admin/users/${userId}`, { ...data, action: 'update' }),
+  deleteUser: (userId) => api.post(`/admin/users/${userId}`, { action: 'delete' }),
+ 
+
 };
 
 export const adminAPI = {
@@ -82,7 +86,5 @@ export const adminAPI = {
   // 📈 Tendances d'utilisation (utilisateurs actifs par jour sur 7 jours)
   getUsageTrends: (timeRange = "7") => api.get(`/admin/usage-trends?time_range=${timeRange}`),
 };
-
-
 
 export default api;
