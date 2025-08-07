@@ -26,7 +26,6 @@ export const AuthProvider = ({ children }) => {
     if (savedToken && savedUser) {
       setToken(savedToken)
       setUser(JSON.parse(savedUser))
-      // Vérifier le statut du tracker au démarrage
       checkTrackerStatus()
     }
     setLoading(false)
@@ -71,17 +70,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("token", userToken)
     localStorage.setItem("user", JSON.stringify(userData))
 
-    // 🚀 Démarrer automatiquement le tracker après connexion
     setTimeout(async () => {
       const success = await startTracker()
       if (success) {
         console.log("🎯 Tracker automatiquement démarré pour", userData.username)
       }
-    }, 1000) // Délai de 1 seconde pour s'assurer que tout est initialisé
+    }, 1000)
   }
 
   const logout = async () => {
-    // 🛑 Arrêter le tracker avant déconnexion
     await stopTracker()
 
     setUser(null)
@@ -90,12 +87,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
 
-    // Rediriger vers la page d'accueil
     window.location.href = "/"
   }
 
   const value = {
     user,
+    setUser, // Added setUser to the context value
     token,
     login,
     logout,

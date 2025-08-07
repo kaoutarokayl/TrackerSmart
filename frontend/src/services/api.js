@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://127.0.0.1:5000";
+export const API_BASE_URL = "http://127.0.0.1:5000";
 
 // Configuration axios avec intercepteur pour le token
 const api = axios.create({
@@ -37,7 +37,6 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      // Rediriger vers la page d'accueil au lieu de la page de connexion
       window.location.href = "/";
     }
     return Promise.reject(error);
@@ -47,43 +46,29 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post("/login", credentials),
   register: (userData) => api.post("/register", userData),
+  updateProfile: (data) => api.post("/profile/update", data),
+  changePassword: (data) => api.post("/profile/change-password", data),
 };
 
 export const trackerAPI = {
-  // Démarrer le tracker
   start: () => api.post("/tracker/start"),
-
-  // Arrêter le tracker
   stop: () => api.post("/tracker/stop"),
-
-  // Statut du tracker
   status: () => api.get("/tracker/status"),
 };
 
 export const usageAPI = {
   getUserUsage: (userId) => api.get(`/usage/${userId}`),
   getAdminUsers: () => api.get("/admin/users"),
-  categorizeApp: (appName) => api.get(`/categorize/${encodeURIComponent(appName)}`), // Nouvelle méthode ajoutée
+  categorizeApp: (appName) => api.get(`/categorize/${encodeURIComponent(appName)}`),
   updateUser: (userId, data) => api.post(`/admin/users/${userId}`, { ...data, action: 'update' }),
   deleteUser: (userId) => api.post(`/admin/users/${userId}`, { action: 'delete' }),
- 
-
 };
 
 export const adminAPI = {
-  // Statistiques générales admin
   getAdminStats: (timeRange = "7") => api.get(`/admin/stats?time_range=${timeRange}`),
-
-  // Activité récente
   getRecentActivity: (timeRange = "7") => api.get(`/admin/activity?time_range=${timeRange}`),
-
-  // Utilisateurs avec leurs statistiques
   getUsersWithStats: (timeRange = "7") => api.get(`/admin/users/stats?time_range=${timeRange}`),
-
-  // Données système
   getSystemHealth: () => api.get("/admin/system/health"),
-
-  // 📈 Tendances d'utilisation (utilisateurs actifs par jour sur 7 jours)
   getUsageTrends: (timeRange = "7") => api.get(`/admin/usage-trends?time_range=${timeRange}`),
 };
 

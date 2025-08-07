@@ -179,9 +179,6 @@ def login():
         data = request.json
         username = data.get("username")
         password = data.get("password")
-        if not username or not password:
-            logger.warning("Missing username or password")
-            return jsonify({"error": "Champs manquants (username ou password)"}), 400
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
@@ -205,16 +202,88 @@ def login():
                     "email": user["email"],
                     "role": user["role"]
                 }
-            }), 200
-        else:
-            logger.warning(f"Login failed for username {username}: invalid credentials")
-            return jsonify({"error": "Nom d'utilisateur ou mot de passe incorrect"}), 401
+            })
+        logger.warning(f"Login failed for username {username}")
+        conn.close()
+        return jsonify({"error": "Identifiants invalides"}), 401
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return jsonify({"error": f"Erreur lors de la connexion: {str(e)}"}), 500
     finally:
         if 'conn' in locals():
             conn.close()
+
+@app.route('/profile/update', methods=['POST'])
+@token_required
+def update_profile(current_user):
+    try:
+        data = request.json
+        username = data.get("username")
+        email = data.get("email")
+        if not username or not email:
+            logger.warning("Missing profile update fields")
+            return jsonify({"error": "Champs manquants (username ou email)"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ? AND id != ?", (username, current_user['user_id']))
+        if cursor.fetchone():
+            conn.close()
+            logger.warning(f"Username {username} already exists")
+            return jsonify({"error": "Nom d'utilisateur déjà utilisé"}), 409
+
+        cursor.execute("SELECT * FROM users WHERE email = ? AND id != ?", (email, current_user['user_id']))
+        if cursor.fetchone():
+            conn.close()
+            logger.warning(f"Email {email} already exists")
+            return jsonify({"error": "Email déjà utilisé"}), 409
+
+        cursor.execute(
+            "UPDATE users SET username = ?, email = ? WHERE id = ?",
+            (username, email, current_user['user_id'])
+        )
+        conn.commit()
+        conn.close()
+        logger.info(f"Profile updated for user {current_user['user_id']}")
+        return jsonify({"message": "Profil mis à jour avec succès"})
+    except sqlite3.Error as e:
+        logger.error(f"Database error updating profile for user {current_user['user_id']}: {str(e)}")
+        return jsonify({"error": f"Erreur base de données: {str(e)}"}), 500
+    except Exception as e:
+        logger.error(f"Error updating profile for user {current_user['user_id']}: {str(e)}")
+        return jsonify({"error": f"Erreur lors de la mise à jour du profil: {str(e)}"}), 500
+
+@app.route('/profile/change-password', methods=['POST'])
+@token_required
+def change_password(current_user):
+    try:
+        data = request.json
+        current_password = data.get("currentPassword")
+        new_password = data.get("newPassword")
+        if not current_password or not new_password:
+            logger.warning("Missing password change fields")
+            return jsonify({"error": "Champs manquants (mot de passe actuel ou nouveau)"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT password_hash FROM users WHERE id = ?", (current_user['user_id'],))
+        user = cursor.fetchone()
+        if not user or not check_password_hash(user["password_hash"], current_password):
+            conn.close()
+            logger.warning(f"Invalid current password for user {current_user['user_id']}")
+            return jsonify({"error": "Mot de passe actuel incorrect"}), 401
+
+        cursor.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (generate_password_hash(new_password), current_user['user_id'])
+        )
+        conn.commit()
+        conn.close()
+        logger.info(f"Password changed for user {current_user['user_id']}")
+        return jsonify({"message": "Mot de passe changé avec succès"})
+    except Exception as e:
+        logger.error(f"Error changing password for user {current_user['user_id']}: {str(e)}")
+        return jsonify({"error": f"Erreur lors du changement de mot de passe: {str(e)}"}), 500
             
 
 @app.route('/usage/<int:user_id>', methods=['GET'])
