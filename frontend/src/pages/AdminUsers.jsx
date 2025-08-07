@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { usageAPI } from "../services/api";
 import { Users, Shield, User, Edit, Trash2, Search, RefreshCw, X } from "lucide-react";
-import ".././AdminUsers.css";
+import ".././AdminUsers.css"; // Corrected import path
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -185,7 +185,7 @@ const AdminUsers = () => {
               className="popup-close-button"
               aria-label="Fermer le message de succès"
             >
-              <X className="h-4 w-4" />
+              <X style={{ color: '#ef4444' }} className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -211,7 +211,7 @@ const AdminUsers = () => {
               className="popup-close-button"
               aria-label="Fermer le message d'erreur"
             >
-              <X className="h-4 w-4" />
+              <X style={{ color: '#ef4444' }} className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -223,7 +223,7 @@ const AdminUsers = () => {
       <div className="cards-container">
         <div className="card">
           <div className="card-content">
-            <Users className="card-icon text-blue-500" />
+            <Users style={{ color: '#3b82f6' }} className="card-icon" />
             <div className="card-text">
               <p className="card-label">Total utilisateurs</p>
               <p className="card-value">{users.length}</p>
@@ -232,7 +232,7 @@ const AdminUsers = () => {
         </div>
         <div className="card">
           <div className="card-content">
-            <Shield className="card-icon text-green-500" />
+            <Shield style={{ color: '#10b981' }} className="card-icon" />
             <div className="card-text">
               <p className="card-label">Administrateurs</p>
               <p className="card-value">{users.filter((user) => user.role === "admin").length}</p>
@@ -241,7 +241,7 @@ const AdminUsers = () => {
         </div>
         <div className="card">
           <div className="card-content">
-            <User className="card-icon text-purple-500" />
+            <User style={{ color: '#8b5cf6' }} className="card-icon" />
             <div className="card-text">
               <p className="card-label">Utilisateurs</p>
               <p className="card-value">{users.filter((user) => user.role === "user").length}</p>
@@ -262,14 +262,14 @@ const AdminUsers = () => {
                 className="search-input"
                 aria-label="Rechercher des utilisateurs"
               />
-              <Search className="search-icon" />
+              <Search style={{ color: '#6b7280' }} className="search-icon" />
               {searchQuery && (
                 <button
                   onClick={handleClearSearch}
                   className="clear-search-button"
                   aria-label="Effacer la recherche"
                 >
-                  <X className="h-4 w-4" />
+                  <X style={{ color: '#ef4444' }} className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -279,7 +279,7 @@ const AdminUsers = () => {
               aria-label="Rafraîchir la liste des utilisateurs"
               disabled={isSubmitting || isRefreshing}
             >
-              <RefreshCw className="refresh-icon" />
+              <RefreshCw style={{ color: '#10b981' }} className="refresh-icon" />
             </button>
           </div>
         </div>
@@ -305,7 +305,7 @@ const AdminUsers = () => {
                     <td>{user.id}</td>
                     <td>
                       <div className="user-cell">
-                        <User className="user-icon" />
+                        <User style={{ color: '#8b5cf6' }} className="user-icon" />
                         <span>{user.username}</span>
                       </div>
                     </td>
@@ -327,7 +327,7 @@ const AdminUsers = () => {
                           disabled={isSubmitting}
                           aria-label={`Modifier l'utilisateur ${user.username}`}
                         >
-                          <Edit className="action-icon" /> Modifier
+                          <Edit style={{ color: '#3b82f6' }} className="action-icon" /> Modifier
                         </button>
                         <span className="tooltip">Modifier l'utilisateur</span>
                       </div>
@@ -341,7 +341,7 @@ const AdminUsers = () => {
                           disabled={isSubmitting}
                           aria-label={`Supprimer l'utilisateur ${user.username}`}
                         >
-                          <Trash2 className="action-icon" /> Supprimer
+                          <Trash2 style={{ color: '#ef4444' }} className="action-icon" /> Supprimer
                         </button>
                         <span className="tooltip">Supprimer l'utilisateur</span>
                       </div>
@@ -399,7 +399,7 @@ const AdminUsers = () => {
                 aria-label="Fermer la modale de modification"
                 disabled={isSubmitting}
               >
-                <X className="h-5 w-5" />
+                <X style={{ color: '#ef4444' }} className="h-5 w-5" />
               </button>
             </div>
             <div className="modal-content">
@@ -473,7 +473,7 @@ const AdminUsers = () => {
                 aria-label="Fermer la modale de suppression"
                 disabled={isSubmitting}
               >
-                <X className="h-5 w-5" />
+                <X style={{ color: '#ef4444' }} className="h-5 w-5" />
               </button>
             </div>
             <p>

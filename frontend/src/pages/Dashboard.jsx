@@ -4,10 +4,14 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { usageAPI } from "../services/api";
 import { Clock, Monitor, TrendingUp, Calendar } from "lucide-react";
+import { getRecommendations } from "../services/recommendations";
+
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [usageData, setUsageData] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalTime: 0,
@@ -67,6 +71,8 @@ const Dashboard = () => {
         console.log("[Dashboard] Données chargées:", data.length, "app_names:", data.map((item) => item.app_name));
         if (isMounted) {
           setUsageData(data);
+          setRecommendations(getRecommendations(data));
+
           await updateStatsAndCategories(data);
         }
       } catch (error) {
@@ -291,6 +297,17 @@ const Dashboard = () => {
           <div className="card p-6 text-center text-gray-500">Aucune statistique par catégorie disponible</div>
         )}
       </div>
+            {/* 🧠 Conseils personnalisés */}
+      {recommendations.length > 0 && (
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">🧠 Conseils personnalisés</h2>
+          <ul className="list-disc pl-5 space-y-2 text-gray-700">
+            {recommendations.map((rec, index) => (
+              <li key={index}>{rec}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Toutes les sessions</h2>

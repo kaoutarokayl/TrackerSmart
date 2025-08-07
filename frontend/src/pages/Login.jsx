@@ -34,34 +34,28 @@ const Login = () => {
 
     try {
       const response = await authAPI.login(formData)
-      const { token, user } = response.data // Utiliser l'objet 'user' de la réponse API
-
-      login(user, token) // Passer l'objet 'user' complet
+      const { token, user } = response.data
+      login(user, token)
       navigate("/dashboard")
     } catch (error) {
-      setError(error.response?.data?.error || "Erreur de connexion")
+      setError(error.response?.data?.error || "Erreur de connexion. Vérifiez vos identifiants.")
     } finally {
       setLoading(false)
     }
   }
 
-  // Fonction pour remplir automatiquement les champs admin
   const fillAdminCredentials = () => {
     setFormData({
       username: "admin",
-      email:"admin@gmail.com",
       password: "admin123",
-
     })
   }
 
   return (
     <div className="min-h-screen flex">
-      {/* Section gauche - Informations sur l'entreprise */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-primary relative overflow-hidden">
         <div className="absolute inset-0 bg-pattern opacity-10"></div>
         <div className="relative z-10 flex flex-col justify-center px-12 text-white">
-          {/* Logo et nom de l'entreprise */}
           <div className="mb-8">
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mr-4">
@@ -73,16 +67,12 @@ const Login = () => {
               </div>
             </div>
           </div>
-
-          {/* Description du produit */}
           <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">SmartTracker 📊</h2>
             <p className="text-lg text-blue-100 mb-6">
               Optimisez votre productivité avec notre solution intelligente de suivi d'activité
             </p>
           </div>
-
-          {/* Fonctionnalités */}
           <div className="space-y-4">
             <div className="flex items-center">
               <Clock className="w-5 h-5 mr-3 text-blue-200" />
@@ -97,8 +87,6 @@ const Login = () => {
               <span className="text-blue-100">Données sécurisées et privées</span>
             </div>
           </div>
-
-          {/* Citation motivante */}
           <div className="mt-12 p-6 bg-white bg-opacity-10 rounded-lg backdrop-blur-sm">
             <p className="text-lg italic text-blue-100">
               "La productivité n'est jamais un accident. C'est toujours le résultat d'un engagement envers
@@ -108,11 +96,8 @@ const Login = () => {
           </div>
         </div>
       </div>
-
-      {/* Section droite - Formulaire de connexion */}
       <div className="w-full lg:w-1/2 flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
-          {/* Header mobile */}
           <div className="lg:hidden text-center mb-8">
             <div className="flex items-center justify-center mb-4">
               <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
@@ -124,15 +109,11 @@ const Login = () => {
               </div>
             </div>
           </div>
-
-          {/* Titre de connexion */}
           <div className="text-center">
             <div className="text-6xl mb-4">🔐</div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Connexion</h2>
             <p className="text-gray-600">Accédez à votre tableau de bord SmartTracker</p>
           </div>
-
-          {/* OPTION 1: Bouton d'aide pour les informations de test */}
           <div className="flex justify-center">
             <button
               type="button"
@@ -143,8 +124,6 @@ const Login = () => {
               {showTestInfo ? "Masquer" : "Afficher"} les informations de test
             </button>
           </div>
-
-          {/* Informations de test (conditionnelles) */}
           {showTestInfo && (
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h3 className="text-sm font-medium text-blue-800 mb-2 flex items-center">🧪 Compte de test</h3>
@@ -167,8 +146,6 @@ const Login = () => {
               </div>
             </div>
           )}
-
-          {/* Formulaire */}
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="alert alert-error flex items-center">
@@ -176,7 +153,6 @@ const Login = () => {
                 {error}
               </div>
             )}
-
             <div className="space-y-4">
               <div>
                 <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
@@ -193,7 +169,6 @@ const Login = () => {
                   placeholder="Entrez votre nom d'utilisateur"
                 />
               </div>
-
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                   🔑 Mot de passe
@@ -219,16 +194,12 @@ const Login = () => {
                 </div>
               </div>
             </div>
-
-            {/* Bouton de connexion */}
             <div>
               <button type="submit" disabled={loading} className="btn btn-primary btn-enhanced w-full">
                 {loading ? <div className="spinner mr-2"></div> : <span className="mr-2">🚀</span>}
                 {loading ? "Connexion en cours..." : "Se connecter"}
               </button>
             </div>
-
-            {/* Lien d'inscription */}
             <div className="text-center">
               <p className="text-sm text-gray-600">
                 Nouveau chez ERTC Technologies ?{" "}

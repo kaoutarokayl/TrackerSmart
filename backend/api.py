@@ -179,6 +179,9 @@ def login():
         data = request.json
         username = data.get("username")
         password = data.get("password")
+        if not username or not password:
+            logger.warning("Missing username or password")
+            return jsonify({"error": "Champs manquants (username ou password)"}), 400
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
@@ -199,19 +202,20 @@ def login():
                 "user": {
                     "id": user["id"],
                     "username": user["username"],
-                    "email": user["email"],  
+                    "email": user["email"],
                     "role": user["role"]
                 }
-            })
-        logger.warning(f"Login failed for username {username}")
-        conn.close()
-        return jsonify({"error": "Identifiants invalides"}), 401
+            }), 200
+        else:
+            logger.warning(f"Login failed for username {username}: invalid credentials")
+            return jsonify({"error": "Nom d'utilisateur ou mot de passe incorrect"}), 401
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return jsonify({"error": f"Erreur lors de la connexion: {str(e)}"}), 500
     finally:
         if 'conn' in locals():
             conn.close()
+            
 
 @app.route('/usage/<int:user_id>', methods=['GET'])
 def get_usage(user_id):
