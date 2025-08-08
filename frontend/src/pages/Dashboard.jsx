@@ -6,7 +6,6 @@ import { usageAPI } from "../services/api";
 import { Clock, Monitor, TrendingUp, Calendar } from "lucide-react";
 import { getRecommendations } from "../services/recommendations";
 
-
 const Dashboard = () => {
   const { user } = useAuth();
   const [usageData, setUsageData] = useState([]);
@@ -116,112 +115,63 @@ const Dashboard = () => {
 
     const totalTime = todayData.reduce((sum, item) => sum + item.duration, 0);
     const sessionsToday = todayData.length;
-    const averageSession = sessionsToday > 0 ? Math.round(todayData.reduce((sum, item) => sum + item.duration, 0) / sessionsToday) : 0;
+    const averageSession = sessionsToday > 0 ? Math.round(totalTime / sessionsToday) : 0;
     const appUsage = {};
     todayData.forEach((item) => (appUsage[item.app_name] = (appUsage[item.app_name] || 0) + item.duration));
-    const mostUsedApp = Object.keys(appUsage).reduce((a, b) => (appUsage[a] > appUsage[b] ? a : b), "") || "";
+    const mostUsedApp = Object.keys(appUsage).reduce((a, b) => (appUsage[a] > appUsage[b] ? a : b), "");
 
-    setStats({ totalTime, mostUsedApp, sessionsToday, averageSession });
-
-    const categoryPromises = todayData.map((item) => categorizeApp(item.app_name));
-    const categories = await Promise.all(categoryPromises);
-    console.log("[Update] Catégories:", todayData.map((item) => item.app_name), categories);
+    // Calcul des stats par catégorie
     const categoryUsage = allCategories.reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {});
-    const newSessionCategories = {};
-    todayData.forEach((item, index) => {
-      const appNameCleaned = item.app_name.toLowerCase().replace(/[-_]/g, " ").replace(/[^\w\s]/g, "").trim();
-      console.log("[Update] Nom nettoyé pour:", item.app_name, "→", appNameCleaned);
-      const category = categories[index];
-      if (category && allCategories.includes(category)) {
-        categoryUsage[category] = (categoryUsage[category] || 0) + item.duration;
-        newSessionCategories[item.app_name] = category;
-        console.log("[Update] Association API:", item.app_name, "→", category);
-      } else if (manualCategories[appNameCleaned] && allCategories.includes(manualCategories[appNameCleaned])) {
-        categoryUsage[manualCategories[appNameCleaned]] = (categoryUsage[manualCategories[appNameCleaned]] || 0) + item.duration;
-        newSessionCategories[item.app_name] = manualCategories[appNameCleaned];
-        console.log("[Update] Association manuelle:", item.app_name, "→", manualCategories[appNameCleaned]);
-      } else {
-        console.log("[Update] Aucune catégorie valide pour:", item.app_name);
-        const defaultCategory = "Navigateurs";
-        categoryUsage[defaultCategory] = (categoryUsage[defaultCategory] || 0) + item.duration;
-        newSessionCategories[item.app_name] = defaultCategory;
-      }
+    todayData.forEach((item) => {
+      const category = manualCategories[item.app_name.toLowerCase()] || "Outils système";
+      categoryUsage[category] += item.duration;
     });
     setCategoryStats(categoryUsage);
-    setSessionCategories((prev) => ({ ...prev, ...newSessionCategories }));
+
+    // Catégorisation des sessions
+    const categories = {};
+    todayData.forEach((item) => {
+      categories[item.app_name] = manualCategories[item.app_name.toLowerCase()] || "Outils système";
+    });
+    setSessionCategories(categories);
+
+    setStats({ totalTime, mostUsedApp, sessionsToday, averageSession });
     setCategoryLoading(false);
-  };
-
-  const categorizeApp = async (appName) => {
-    console.log("[Categorize] Tentative pour:", appName);
-    const cleanAppName = appName
-      .toLowerCase()
-      .replace(/[-_]/g, " ")
-      .replace(/[^\w\s]/g, "")
-      .trim();
-    console.log("[Categorize] Nom nettoyé:", cleanAppName);
-    if (manualCategories[cleanAppName] && allCategories.includes(manualCategories[cleanAppName])) {
-      console.log("[Categorize] Manuel:", cleanAppName, "→", manualCategories[cleanAppName]);
-      localStorage.setItem(`category_${encodeURIComponent(appName)}`, manualCategories[cleanAppName]);
-      return manualCategories[cleanAppName];
-    }
-    const cachedCategory = localStorage.getItem(`category_${encodeURIComponent(appName)}`);
-    if (cachedCategory) {
-      console.log("[Categorize] Cache:", cachedCategory);
-      return allCategories.includes(cachedCategory) ? cachedCategory : null;
-    }
-
-    try {
-      const response = await usageAPI.categorizeApp(cleanAppName);
-      console.log("[Categorize] Réponse API:", response.data);
-      if (response.data && response.data.category) {
-        const category = response.data.category;
-        if (allCategories.includes(category)) {
-          localStorage.setItem(`category_${encodeURIComponent(appName)}`, category);
-          console.log("[Categorize] Sauvegardé:", category);
-          return category;
-        }
-      }
-      throw new Error("Catégorie invalide");
-    } catch (error) {
-      console.error("[Categorize] Erreur API:", error);
-      console.log("[Categorize] Ignoré, pas de catégorie valide");
-      return null;
-    }
   };
 
   const formatDuration = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return hours > 0 ? `${hours}h ${minutes}m ${secs}s` : minutes > 0 ? `${minutes}m ${secs}s` : `${secs}s`;
+    return `${hours}h ${minutes}m ${secs}s`;
   };
 
   const getPaginatedSessions = (data) => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return data
-      .filter((item) => item.app_name !== "unknown" && item.app_name !== "Application inconnue")
-      .filter((item) => sessionCategories[item.app_name] && allCategories.includes(sessionCategories[item.app_name]))
-      .sort((a, b) => new Date(b.start_time) - new Date(a.start_time))
-      .slice(startIndex, endIndex);
+    return data.slice(startIndex, startIndex + itemsPerPage);
   };
 
   const loadMoreSessions = () => {
-    setCurrentPage(currentPage + 1);
-    updateStatsAndCategories(usageData);
+    setCurrentPage((prev) => prev + 1);
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="spinner-lg"></div></div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="spinner-lg"></div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Bonjour, {user?.username} 👋</h1>
-        <p className="text-gray-600">Voici un aperçu de votre activité aujourd'hui - 02:20 PM +01, Monday, August 04, 2025</p>
+        <p className="text-gray-600">Voici un aperçu de votre activité</p>
       </div>
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="card p-6">
           <div className="flex items-center">
@@ -235,11 +185,9 @@ const Dashboard = () => {
         <div className="card p-6">
           <div className="flex items-center">
             <Monitor className="icon-lg text-green-600" />
-            <div className="ml-4 max-w-full">
+            <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">App la plus utilisée</p>
-              <p className="text-lg font-bold text-gray-900 max-w-full break-words whitespace-normal" style={{ wordBreak: "break-word" }}>
-                {stats.mostUsedApp || "Aucune"}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{stats.mostUsedApp || "Aucune"}</p>
             </div>
           </div>
         </div>
@@ -262,6 +210,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {Object.keys(categoryStats).length > 0 ? (
           allCategories.map((category) => (
@@ -297,7 +246,8 @@ const Dashboard = () => {
           <div className="card p-6 text-center text-gray-500">Aucune statistique par catégorie disponible</div>
         )}
       </div>
-            {/* 🧠 Conseils personnalisés */}
+
+      {/* 🧠 Conseils personnalisés */}
       {recommendations.length > 0 && (
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">🧠 Conseils personnalisés</h2>
@@ -308,6 +258,7 @@ const Dashboard = () => {
           </ul>
         </div>
       )}
+
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Toutes les sessions</h2>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { usageAPI } from "../services/api";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from "chart.js";
 import { Bar, Doughnut } from "react-chartjs-2";
-import { saveAs } from "file-saver"; // Pour le téléchargement CSV (installez avec `npm install file-saver`)
+import { saveAs } from "file-saver";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -13,13 +13,12 @@ const Stats = () => {
   const { user } = useAuth();
   const [usageData, setUsageData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState("7"); // 7 jours par défaut
-  const [searchTerm, setSearchTerm] = useState(""); // Pour la recherche dans le tableau
+  const [error, setError] = useState(null);
+  const [timeRange, setTimeRange] = useState("7");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Catégories basées uniquement sur app_categories.csv, sans "Autre"
   const allCategories = ["Travail", "Navigateurs", "Social", "Divertissement", "Création/Streaming", "Outils système"];
 
-  // Correspondances manuelles pour les cas où l'API échoue, avec variantes pour Snipping Tool
   const manualCategories = {
     "google chrome": "Navigateurs",
     "firefox": "Navigateurs",
@@ -28,7 +27,7 @@ const Stats = () => {
     "opera": "Navigateurs",
     "vscode": "Travail",
     "visual studio code": "Travail",
-    "DB Browser for SQLite": "Travail",
+    "db browser for sqlite": "Travail",
     "notion": "Travail",
     "slack": "Travail",
     "youtube": "Divertissement",
@@ -42,13 +41,17 @@ const Stats = () => {
     "microsoft snipping tool": "Outils système",
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [timeRange]);
+  const browserContentCategories = {
+    Travail: ["docs.google.com", "notion.so", "trello.com", "asana.com", "jira.com"],
+    Divertissement: ["youtube.com", "netflix.com", "twitch.tv", "hulu.com"],
+    Social: ["facebook.com", "instagram.com", "twitter.com", "linkedin.com"],
+    Recherche: ["google.com", "bing.com", "duckduckgo.com", "yahoo.com"],
+  };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const userUsageResponse = await usageAPI.getUserUsage(user.id);
       const data = userUsageResponse.data.filter(
         (item) => item.app_name && item.app_name.toLowerCase() !== "unknown" && item.app_name.toLowerCase() !== "application inconnue"
@@ -56,38 +59,40 @@ const Stats = () => {
       setUsageData(data);
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error);
+      setError("Impossible de charger les données. Veuillez réessayer plus tard.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id]);
 
-  const filterDataByTimeRange = (data) => {
+  useEffect(() => {
+    fetchData();
+  }, [timeRange, fetchData]);
+
+  const filterDataByTimeRange = useCallback((data) => {
     const now = new Date();
     const daysAgo = new Date(now.getTime() - Number.parseInt(timeRange) * 24 * 60 * 60 * 1000);
     return data.filter((item) => new Date(item.start_time) >= daysAgo);
-  };
+  }, [timeRange]);
 
-  const categorizeApp = (appName, url) => {
+  const categorizeApp = useCallback((appName, url) => {
     const lowerAppName = appName.toLowerCase().replace(/[-_]/g, " ").replace(/[^\w\s]/g, "").trim();
     if (manualCategories[lowerAppName]) return manualCategories[lowerAppName];
     if (url) {
-      const urlDomain = new URL(url).hostname.toLowerCase();
-      const contentCategory = Object.entries(browserContentCategories).find(([_, domains]) =>
-        domains.some((domain) => urlDomain.includes(domain))
-      )?.[0];
-      return contentCategory || "Navigateurs";
+      try {
+        const urlDomain = new URL(url).hostname.toLowerCase();
+        const contentCategory = Object.entries(browserContentCategories).find(([_, domains]) =>
+          domains.some((domain) => urlDomain.includes(domain))
+        )?.[0];
+        return contentCategory || "Navigateurs";
+      } catch (e) {
+        return "Navigateurs";
+      }
     }
     return "Navigateurs";
-  };
+  }, []);
 
-  const browserContentCategories = {
-    "Travail": ["docs.google.com", "notion.so", "trello.com", "asana.com", "jira.com"],
-    "Divertissement": ["youtube.com", "netflix.com", "twitch.tv", "hulu.com"],
-    "Social": ["facebook.com", "instagram.com", "twitter.com", "linkedin.com"],
-    "Recherche": ["google.com", "bing.com", "duckduckgo.com", "yahoo.com"],
-  };
-
-  const getAppUsageData = () => {
+  const getAppUsageData = useMemo(() => {
     const filteredData = filterDataByTimeRange(usageData);
     const appUsage = {};
 
@@ -116,9 +121,9 @@ const Stats = () => {
         },
       ],
     };
-  };
+  }, [usageData, filterDataByTimeRange]);
 
-  const getCategoryUsageData = () => {
+  const getCategoryUsageData = useMemo(() => {
     const filteredData = filterDataByTimeRange(usageData);
     const categoryUsage = {};
 
@@ -140,9 +145,9 @@ const Stats = () => {
         },
       ],
     };
-  };
+  }, [usageData, filterDataByTimeRange, categorizeApp]);
 
-  const getDailyUsageData = () => {
+  const getDailyUsageData = useMemo(() => {
     const filteredData = filterDataByTimeRange(usageData);
     const dailyUsage = {};
 
@@ -169,9 +174,10 @@ const Stats = () => {
         },
       ],
     };
-  };
+  }, [usageData, filterDataByTimeRange]);
 
   const formatDuration = (seconds) => {
+    if (!seconds) return "0m";
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
@@ -179,24 +185,20 @@ const Stats = () => {
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top",
         labels: {
-          generateLabels: (chart) => {
-            const data = chart.data;
-            return data.labels.map((label, i) => ({
-              text: label,
-              fillStyle: data.datasets[0].backgroundColor[i],
-              strokeStyle: data.datasets[0].borderColor || "#fff",
-              lineWidth: data.datasets[0].borderWidth,
-              hidden: !chart.isDatasetVisible(0),
-              index: i,
-            }));
-          },
+          font: { size: 12 },
+          padding: 20,
+          boxWidth: 15,
         },
       },
       tooltip: {
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleFont: { size: 14 },
+        bodyFont: { size: 12 },
         callbacks: {
           label: (context) => `${context.label}: ${formatDuration(context.parsed.y)}`,
         },
@@ -206,27 +208,33 @@ const Stats = () => {
       y: {
         ticks: {
           callback: (value) => formatDuration(value),
+          font: { size: 12 },
         },
+        grid: { color: "rgba(0, 0, 0, 0.05)" },
+      },
+      x: {
+        ticks: { font: { size: 12 } },
+        grid: { display: false },
       },
     },
   };
 
   const doughnutOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "right",
-        onClick: (e, legendItem, legend) => {
-          const index = legendItem.index;
-          const ci = legend.chart;
-          if (ci.isDatasetVisible(0)) {
-            ci.hide(0, index);
-          } else {
-            ci.show(0, index);
-          }
+        labels: {
+          font: { size: 12 },
+          padding: 20,
+          boxWidth: 15,
         },
       },
       tooltip: {
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleFont: { size: 14 },
+        bodyFont: { size: 12 },
         callbacks: {
           label: (context) => {
             const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -238,8 +246,7 @@ const Stats = () => {
     },
   };
 
-  // Fonction pour exporter en CSV
-  const exportToCSV = () => {
+  const exportToCSV = useCallback(() => {
     const filteredData = filterDataByTimeRange(usageData);
     const csv = [
       ["Application", "Catégorie", "Temps total", "Sessions", "Temps moyen/session"].join(","),
@@ -260,7 +267,7 @@ const Stats = () => {
         .sort(([, a], [, b]) => b.totalTime - a.totalTime)
         .map(([appName, data]) =>
           [
-            appName,
+            `"${appName.replace(/"/g, '""')}"`,
             data.category,
             formatDuration(data.totalTime),
             data.sessions,
@@ -270,6 +277,42 @@ const Stats = () => {
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     saveAs(blob, `stats_usage_${user.id}_${timeRange}days.csv`);
+  }, [usageData, timeRange, filterDataByTimeRange, categorizeApp]);
+
+  const getSummaryStats = useMemo(() => {
+    const filteredData = filterDataByTimeRange(usageData);
+    const totalTime = filteredData.reduce((sum, item) => sum + item.duration, 0);
+    const totalSessions = filteredData.length;
+    const uniqueApps = new Set(filteredData.map((item) => item.app_name)).size;
+    const categoryUsage = {};
+    filteredData.forEach((item) => {
+      const category = categorizeApp(item.app_name, item.url);
+      categoryUsage[category] = (categoryUsage[category] || 0) + item.duration;
+    });
+    const mainCategory = Object.entries(categoryUsage).reduce((a, b) => a[1] > b[1] ? a : b, [null, 0])[0] || "Travail";
+    const mainCategoryTime = categoryUsage[mainCategory] || 0;
+    const averageSessionTime = totalSessions ? Math.round(totalTime / totalSessions) : 0;
+
+    return {
+      totalTime: formatDuration(totalTime),
+      uniqueApps,
+      activeApps: uniqueApps, // Assuming all tracked apps are active; adjust if you have specific active app data
+      mainCategory,
+      mainCategoryTime: formatDuration(mainCategoryTime),
+      averageSessionTime: formatDuration(averageSessionTime),
+    };
+  }, [usageData, filterDataByTimeRange, categorizeApp]);
+
+  const getCategoryColor = (category) => {
+    switch (category) {
+      case "Travail": return "text-blue-600";
+      case "Navigateurs": return "text-yellow-600";
+      case "Social": return "text-green-600";
+      case "Divertissement": return "text-red-600";
+      case "Création/Streaming": return "text-purple-600";
+      case "Outils système": return "text-gray-600";
+      default: return "text-gray-900";
+    }
   };
 
   if (loading) {
@@ -280,18 +323,37 @@ const Stats = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64 text-red-600">
+        <div>{error}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 p-4 bg-gray-50 min-h-screen">
+    <div className="space-y-6 p-6 bg-gray-100 min-h-screen">
       <div className="flex justify-between items-center flex-col md:flex-row gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mes Statistiques d'utilisation</h1>
-          <p className="text-gray-600">Analysez votre temps d'écran personnel - 02:13 PM +01, Monday, August 04, 2025</p>
+          <h1 className="text-3xl font-bold text-gray-900">Mes Statistiques d'Utilisation</h1>
+          <p className="text-gray-600 text-sm">
+            Analysez votre temps d'écran - {new Date().toLocaleString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZoneName: "short",
+              weekday: "long",
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
         </div>
         <div className="flex gap-4">
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            aria-label="Sélectionner la période"
           >
             <option value="1">Dernières 24h</option>
             <option value="7">7 derniers jours</option>
@@ -300,37 +362,68 @@ const Stats = () => {
           </select>
           <button
             onClick={exportToCSV}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            aria-label="Exporter en CSV"
           >
             Exporter en CSV
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-6"></h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="bg-gray-50 p-4 rounded-lg text-center">
+              <p className="text-sm text-gray-500">Temps total</p>
+              <p className="text-xl font-bold text-gray-900">{getSummaryStats.totalTime}</p>
+              <p className="text-xs text-gray-500">sur {timeRange} jours</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg text-center">
+              <p className="text-sm text-gray-500">Applications suivies</p>
+              <p className="text-xl font-bold text-gray-900">{getSummaryStats.uniqueApps}</p>
+              <p className="text-xs text-gray-500">dont {getSummaryStats.activeApps} actives</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="bg-gray-50 p-4 rounded-lg text-center">
+              <p className="text-sm text-gray-500">Catégorie principale</p>
+              <p className="text-xl font-bold text-gray-900">{getSummaryStats.mainCategory}</p>
+              <p className="text-xs text-gray-500">avec {getSummaryStats.mainCategoryTime} temps</p>
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg text-center">
+              <p className="text-sm text-gray-500">Sessions moyennes</p>
+              <p className="text-xl font-bold text-gray-900">{getSummaryStats.averageSessionTime}</p>
+              <p className="text-xs text-gray-500">par application</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Applications les plus utilisées</h2>
           <div className="h-80">
-            <Doughnut data={getAppUsageData()} options={doughnutOptions} />
+            <Doughnut data={getAppUsageData} options={doughnutOptions} />
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Utilisation par catégorie</h2>
           <div className="h-80">
-            <Doughnut data={getCategoryUsageData()} options={doughnutOptions} />
+            <Doughnut data={getCategoryUsageData} options={doughnutOptions} />
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Utilisation quotidienne</h2>
           <div className="h-80">
-            <Bar data={getDailyUsageData()} options={chartOptions} />
+            <Bar data={getDailyUsageData} options={chartOptions} />
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-4 py-2 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-sm font-semibold text-gray-900">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-gray-900">
             Détail par application ({timeRange} derniers jours)
           </h2>
           <input
@@ -338,18 +431,19 @@ const Stats = () => {
             placeholder="Rechercher une application..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Rechercher une application"
           />
         </div>
-        <div className="w-full">
+        <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">Application</th>
-                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
-                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">Temps total</th>
-                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">Sessions</th>
-                <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">Temps moyen/session</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Application</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temps total</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sessions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temps moyen/session</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -371,21 +465,11 @@ const Stats = () => {
                 .filter(([appName]) => appName.toLowerCase().includes(searchTerm.toLowerCase()))
                 .map(([appName, data]) => (
                   <tr key={appName} className="hover:bg-gray-50">
-                    <td className="px-2 py-1 whitespace-nowrap text-sm">
-                      <div className="text-gray-900">{appName}</div>
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm">
-                      <div className={`text-gray-900 ${getCategoryColor(data.category)}`}>{data.category}</div>
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm">
-                      <div className="text-gray-900">{formatDuration(data.totalTime)}</div>
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm">
-                      <div className="text-gray-900">{data.sessions}</div>
-                    </td>
-                    <td className="px-2 py-1 whitespace-nowrap text-sm">
-                      <div className="text-gray-900">{formatDuration(Math.round(data.totalTime / data.sessions))}</div>
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appName}</td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${getCategoryColor(data.category)}`}>{data.category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDuration(data.totalTime)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{data.sessions}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDuration(Math.round(data.totalTime / data.sessions))}</td>
                   </tr>
                 ))}
             </tbody>
@@ -394,19 +478,6 @@ const Stats = () => {
       </div>
     </div>
   );
-
-  // Fonction pour associer une couleur à une catégorie
-  function getCategoryColor(category) {
-    switch (category) {
-      case "Travail": return "text-blue-600";
-      case "Navigateurs": return "text-yellow-600";
-      case "Social": return "text-green-600";
-      case "Divertissement": return "text-red-600";
-      case "Création/Streaming": return "text-purple-600";
-      case "Outils système": return "text-gray-600";
-      default: return "text-gray-900";
-    }
-  }
 };
 
 export default Stats;
