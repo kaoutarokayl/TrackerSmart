@@ -75,5 +75,16 @@ export const adminAPI = {
 export const userAPI = {
   getNotifications: () => api.get('/user/notifications'),
 };
+export const fetchTasks = (date) =>
+  api.get(`/tasks?date=${date}`)
+
+export const addTask = (task) =>
+  api.post("/tasks", task)
+
+export const deleteTask = (id) =>
+  api.delete(`/tasks/${id}`)
+
+export const updateTaskStatus = (id, status) =>
+  api.patch(`/tasks/${id}`, { status })
 
 export default api;

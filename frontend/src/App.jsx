@@ -25,7 +25,6 @@ const AppRoutes = () => {
       {/* Routes publiques */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
-      <Route path="/calendar" element={<CalendarPage />} />
 
       {/* Routes protégées */}
       <Route
@@ -49,6 +48,16 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+  path="/calendar"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <CalendarPage />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
 
       <Route
         path="/admin/users"

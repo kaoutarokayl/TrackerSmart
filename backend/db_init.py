@@ -56,6 +56,20 @@ cursor.execute('''
         FOREIGN KEY (user_id) REFERENCES users (id)
     )
 ''')
+# 5bis. Créer la table tasks si elle n'existe pas
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        title TEXT,
+        status TEXT,
+        priority TEXT,
+        time TEXT,
+        date TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+''')
+print("✅ Table tasks créée ou déjà existante")
 
 # 6. Corriger les user_id NULL dans usage (si nécessaire)
 cursor.execute("UPDATE usage SET user_id = 1 WHERE user_id IS NULL")

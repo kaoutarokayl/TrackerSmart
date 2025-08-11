@@ -1,0 +1,180 @@
+/* CalendarCustom.css */
+
+/* Style général des cartes */
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Calendrier élargi */
+.large-calendar-section {
+  margin-bottom: 20px;
+}
+
+.extra-large-calendar {
+  width: 100%;
+  max-width: 900px; /* Plus large que la version précédente */
+  margin: 0 auto;
+  font-size: 1.1em;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.react-calendar__month-view__days {
+  justify-content: center;
+}
+
+.react-calendar__tile {
+  height: 60px; /* Hauteur augmentée pour plus de lisibilité */
+  width: 60px;
+  margin: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.react-calendar__tile--active {
+  background: #007bff;
+  color: white;
+  border-radius: 50%;
+}
+
+/* Pomodoro élargi */
+.pomodoro-card {
+  width: 100%;
+  max-width: 500px; /* Plus large que la version précédente */
+  margin: 0 auto;
+  text-align: center;
+  padding: 25px;
+}
+
+.pomodoro-header {
+  font-size: 1.2em;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.pomodoro-time {
+  font-size: 3em; /* Plus grand pour correspondre à l'image */
+  color: #007bff;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.pomodoro-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.pomodoro-btn {
+  padding: 10px 20px;
+  font-size: 1em;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.pomodoro-btn.start {
+  background-color: #007bff;
+  color: white;
+}
+
+.pomodoro-btn.reset {
+  background-color: #ccc;
+  color: #333;
+}
+
+/* Section de gestion des tâches */
+.task-management-section {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.task-form-card, .tasks-list-card {
+  flex: 1;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+.trello-form {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.trello-form input,
+.trello-form select {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1em;
+}
+
+.trello-form button {
+  padding: 8px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.trello-card {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 5px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .extra-large-calendar {
+    max-width: 100%;
+  }
+
+  .pomodoro-card {
+    max-width: 100%;
+  }
+
+  .task-management-section {
+    flex-direction: column;
+  }
+}
+.trello-card {
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.trello-card:hover {
+  box-shadow: 0 6px 24px #007bff33;
+  transform: translateY(-2px) scale(1.01);
+}
+
+.badge.haute {
+  background: #ffe5e5;
+  color: #e53e3e;
+  font-weight: bold;
+}
+.badge.normale {
+  background: #e2e8f0;
+  color: #007bff;
+  font-weight: bold;
+}
+.badge.status.à\ faire {
+  background: #f6f8fa;
+  color: #333;
+}
+.badge.status.terminée {
+  background: #38a169;
+  color: #fff;
+}
+.badge.status.en\ cours {
+  background: #f6ad55;
+  color: #fff;
+}

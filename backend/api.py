@@ -664,7 +664,96 @@ def get_usage_trends(current_user):
     except Exception as e:
         logger.error(f"Error retrieving usage trends: {str(e)}")
         return jsonify({'error': f'Erreur lors de la récupération des tendances: {str(e)}'}), 500
+# 🔖 CRUD tâches personnelles
+@app.route('/tasks', methods=['GET'])
+@token_required
+def get_tasks(current_user):
+    user_id = current_user['user_id']
+    date = request.args.get('date')  # format: YYYY-MM-DD
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, title, status, priority, time, date
+            FROM tasks
+            WHERE user_id = ? AND date = ?
+        ''', (user_id, date))
+        tasks = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jsonify(tasks)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
+@app.route('/tasks', methods=['POST'])
+@token_required
+def add_task(current_user):
+    user_id = current_user['user_id']
+    data = request.json
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO tasks (user_id, title, status, priority, time, date)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            user_id,
+            data.get('title'),
+            data.get('status', 'à faire'),
+            data.get('priority', 'normale'),
+            data.get('time'),
+            data.get('date')
+        ))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/tasks/<int:task_id>', methods=['DELETE'])
+@token_required
+def delete_task(current_user, task_id):
+    user_id = current_user['user_id']
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM tasks WHERE id = ? AND user_id = ?', (task_id, user_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/tasks/<int:task_id>', methods=['PATCH'])
+@token_required
+def update_task(current_user, task_id):
+    user_id = current_user['user_id']
+    data = request.json
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE tasks SET
+                title = COALESCE(?, title),
+                status = COALESCE(?, status),
+                priority = COALESCE(?, priority),
+                time = COALESCE(?, time),
+                date = COALESCE(?, date)
+            WHERE id = ? AND user_id = ?
+        ''', (
+            data.get('title'),
+            data.get('status'),
+            data.get('priority'),
+            data.get('time'),
+            data.get('date'),
+            task_id,
+            user_id
+        ))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 # 🔔 Notifications pour l'utilisateur (spécifiques à WhatsApp, dépassement de 60 secondes)
 @app.route('/user/notifications', methods=['GET'])
 @token_required
@@ -714,6 +803,7 @@ def init_db():
         conn = get_db_connection()
         cursor = conn.cursor()
 
+
         # 1. Créer la table users si elle n'existe pas
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -739,6 +829,7 @@ def init_db():
             )
         ''')
         print("✅ Table usage créée ou déjà existante")
+        
 
         # 3. Ajouter la colonne last_login à users si elle n'existe pas déjà (déjà inclus dans la création)
         try:
