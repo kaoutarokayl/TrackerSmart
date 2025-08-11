@@ -1,8 +1,10 @@
 "use client"
 
 import { useAuth } from "../context/AuthContext"
-import { LogOut, User, BarChart3, Users, Home, Shield, Settings } from "lucide-react"
+import { LogOut, User, BarChart3, Users, Home, Shield, Settings, Bell, Calendar } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
+import { userAPI } from "../services/api"; // Ajoute cette ligne en haut
+
 
 const Layout = ({ children }) => {
   const { user, logout, isAdmin } = useAuth()
@@ -12,6 +14,8 @@ const Layout = ({ children }) => {
     { name: "Tableau de bord", href: "/dashboard", icon: Home },
     { name: "Statistiques", href: "/stats", icon: BarChart3 },
     { name: "Mon Profil", href: "/profile", icon: User },
+    { name: "Calendrier", href: "/calendar", icon: Calendar }, 
+
     ...(isAdmin
       ? [
           { name: "Utilisateurs", href: "/admin/users", icon: Users },
@@ -82,13 +86,32 @@ const Layout = ({ children }) => {
                   <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
                 </div>
               </div>
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover-text-red-600 transition-colors"
-                title="Se déconnecter et retourner à l'accueil"
-              >
-                <LogOut className="icon" />
-              </button>
+              <div>
+        <button
+           onClick={async () => {
+    const { data } = await userAPI.getNotifications();
+    alert(data.notifications.map(n => `${n}`).join('\n'));
+  }}
+  className="ml-2 text-blue-500 hover:text-blue-700 relative"
+  title="Voir les notifications"
+>
+  <span className="relative">
+    <Bell className="w-5 h-5" />
+    {user?.notifications?.length > 0 && (
+      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2">
+        {user.notifications.length}
+      </span>
+    )}
+  </span>
+</button>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-400 hover-text-red-600 transition-colors ml-2"
+                  title="Se déconnecter et retourner à l'accueil"
+                >
+                  <LogOut className="icon" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

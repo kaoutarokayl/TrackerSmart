@@ -72,4 +72,8 @@ export const adminAPI = {
   getUsageTrends: (timeRange = "7") => api.get(`/admin/usage-trends?time_range=${timeRange}`),
 };
 
+export const userAPI = {
+  getNotifications: () => api.get('/user/notifications'),
+};
+
 export default api;

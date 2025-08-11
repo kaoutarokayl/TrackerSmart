@@ -11,6 +11,8 @@ from tracker import start_tracker_for_user, stop_tracker_for_user, is_tracker_ru
 from functools import wraps
 import pandas as pd
 import logging
+from email_utils import send_email_smtp
+
 
 app = Flask(__name__)
 
@@ -62,7 +64,6 @@ def token_required(f):
             if token.startswith("Bearer "):
                 token = token[7:]
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            # Pass current_user as a keyword argument to avoid conflict with URL parameters
             kwargs['current_user'] = {'user_id': data['user_id'], 'role': data['role']}
             return f(*args, **kwargs)
         except jwt.ExpiredSignatureError:
@@ -82,6 +83,29 @@ def token_required(f):
             return response, 401
     return decorated
 
+@app.route('/user/send-notification-email', methods=['POST'])
+def send_notification_email():
+    try:
+        data = request.json
+        # data doit contenir: to_email, subject, message
+        to_email = data.get("to_email")
+        subject = data.get("subject")
+        message = data.get("message")
+        # Configure tes identifiants SMTP ici (remplace par tes vrais identifiants)
+        smtp_user = "kaoutarokayl4@gmail.com"
+        smtp_password = "oehu savm etlo pycr"
+        success = send_email_smtp(
+            to_email, subject, message,
+            from_email=smtp_user,
+            smtp_user=smtp_user,
+            smtp_password=smtp_password
+        )
+        if success:
+            return jsonify({"success": True, "message": "Email envoyé"}), 200
+        else:
+            return jsonify({"success": False, "error": "Erreur d'envoi"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 # 🎯 Démarrer le tracker pour un utilisateur
 @app.route('/tracker/start', methods=['POST'])
 @token_required
@@ -284,7 +308,6 @@ def change_password(current_user):
     except Exception as e:
         logger.error(f"Error changing password for user {current_user['user_id']}: {str(e)}")
         return jsonify({"error": f"Erreur lors du changement de mot de passe: {str(e)}"}), 500
-            
 
 @app.route('/usage/<int:user_id>', methods=['GET'])
 def get_usage(user_id):
@@ -565,7 +588,9 @@ def get_system_health(current_user):
             'last_backup': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
             'error': str(e)
         }), 500
+    
 
+    
 @app.route('/admin/users/stats', methods=['GET'])
 @token_required
 def get_users_with_stats(current_user):
@@ -640,20 +665,151 @@ def get_usage_trends(current_user):
         logger.error(f"Error retrieving usage trends: {str(e)}")
         return jsonify({'error': f'Erreur lors de la récupération des tendances: {str(e)}'}), 500
 
-# Ajouter un index sur start_time pour optimiser les requêtes
+# 🔔 Notifications pour l'utilisateur (spécifiques à WhatsApp, dépassement de 60 secondes)
+@app.route('/user/notifications', methods=['GET'])
+@token_required
+def get_notifications(current_user):
+    try:
+        logger.debug(f"Processing notifications for user_id: {current_user['user_id']}")
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT app_name, duration, start_time
+            FROM usage
+            WHERE user_id = ? AND app_name = 'WhatsApp' AND duration > 60 AND DATE(start_time) = DATE('now')
+        ''', (current_user['user_id'],))
+        overuses = cursor.fetchall()
+        # Récupère l'email de l'utilisateur
+        cursor.execute("SELECT email FROM users WHERE id = ?", (current_user['user_id'],))
+        user_email = cursor.fetchone()["email"]
+        conn.close()
+
+        notifications = []
+        if overuses:
+            for overuse in overuses:
+                message = f"Attention : Vous avez dépassé 3 heures sur WhatsApp  le {overuse['start_time']})"
+                notifications.append({"message": message})
+                logger.info(f"Notification générée : {message}")
+                # ENVOI EMAIL ICI
+                send_email_smtp(
+                    user_email,
+                    "Alerte SmartTracker",
+                    message,
+                    smtp_user="kaoutarokayl4@gmail.com",
+                    smtp_password="TON_MOT_DE_PASSE_APPLICATION",  # Utilise le mot de passe d'application Gmail
+                    from_email="kaoutarokayl4@gmail.com"
+                )
+
+        return jsonify({
+            'recommendations': ["Réduisez votre temps sur WhatsApp"],
+            'notifications': [n['message'] for n in notifications]
+        })
+    except Exception as e:
+        logger.error(f"Error getting notifications for user {current_user['user_id']}: {str(e)}", exc_info=True)
+        return jsonify({'error': f'Erreur: {str(e)}'}), 500
+
+# 🔧 Initialisation de la base de données
 def init_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_start_time ON usage (start_time)')
+
+        # 1. Créer la table users si elle n'existe pas
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'user',
+                last_login TEXT
+            )
+        ''')
+        print("✅ Table users créée ou déjà existante")
+
+        # 2. Créer la table usage si elle n'existe pas
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                app_name TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                duration INTEGER NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+        print("✅ Table usage créée ou déjà existante")
+
+        # 3. Ajouter la colonne last_login à users si elle n'existe pas déjà (déjà inclus dans la création)
+        try:
+            cursor.execute('ALTER TABLE users ADD COLUMN last_login TEXT')
+            print("✅ Colonne last_login ajoutée à la table users")
+        except sqlite3.OperationalError:
+            print("ℹ️ Colonne last_login existe déjà")
+
+        # 4. Créer un compte admin s'il n'existe pas
+        cursor.execute("SELECT * FROM users WHERE role = 'admin'")
+        admin_exists = cursor.fetchone()
+        if not admin_exists:
+            admin_password = generate_password_hash("admin123")  # Mot de passe temporaire
+            cursor.execute('''
+                INSERT INTO users (username, email, password_hash, role)
+                VALUES (?, ?, ?, ?)
+            ''', ("admin", "admin@example.com", admin_password, "admin"))
+            print("✅ Admin créé avec le mot de passe : admin123")
+        else:
+            print("ℹ️ Compte admin existe déjà")
+
+        # 5. Insérer des données de test dans usage (incluant WhatsApp > 60s)
+        test_data = [
+            (1, "WhatsApp", "2025-08-08 22:00:00", 70),  # 70 secondes > 60s
+            (1, "YouTube", "2025-08-08 22:01:00", 50),   # 50 secondes < 60s
+            (2, "App2", "2025-08-08 22:02:00", 1800),    # 30 minutes
+        ]
+        cursor.executemany('''
+            INSERT INTO usage (user_id, app_name, start_time, duration)
+            VALUES (?, ?, ?, ?)
+        ''', test_data)
+        print("✅ Données de test insérées dans la table usage")
+
+        # 6. Vérifier le nombre d'enregistrements dans usage
+        cursor.execute("SELECT COUNT(*) FROM usage")
+        usage_count = cursor.fetchone()[0]
+        print(f"ℹ️ Nombre d'enregistrements dans usage : {usage_count}")
+
         conn.commit()
-        logger.info("Database index created successfully")
+        print("✅ Initialisation de la base de données terminée")
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
+        print(f"❌ Erreur lors de l'initialisation : {str(e)}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+# 🔧 Initialisation de la table des paramètres
+def init_settings_table():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_settings (
+                user_id INTEGER,
+                app_name TEXT,
+                max_duration INTEGER,
+                PRIMARY KEY (user_id, app_name),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+        conn.commit()
+        print("✅ Table user_settings créée ou déjà existante")
+    except Exception as e:
+        logger.error(f"Error initializing settings table: {str(e)}")
+        print(f"❌ Erreur lors de l'initialisation de user_settings : {str(e)}")
     finally:
         if 'conn' in locals():
             conn.close()
 
 if __name__ == '__main__':
     init_db()
+    init_settings_table()
     app.run(debug=True)

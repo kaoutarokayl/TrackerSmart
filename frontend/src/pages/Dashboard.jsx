@@ -5,11 +5,17 @@ import { useAuth } from "../context/AuthContext";
 import { usageAPI } from "../services/api";
 import { Clock, Monitor, TrendingUp, Calendar } from "lucide-react";
 import { getRecommendations } from "../services/recommendations";
+import NotificationBanner from "../components/NotificationBanner";
+import api from "../services/api";
+
+import { userAPI } from "../services/api";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [usageData, setUsageData] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [banner, setBanner] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -33,6 +39,7 @@ const Dashboard = () => {
     "firefox": "Navigateurs",
     "safari": "Navigateurs",
     "edge": "Navigateurs",
+    "microsoft​ edge": "Navigateurs",
     "opera": "Navigateurs",
     "vscode": "Travail",
     "notion": "Travail",
@@ -58,6 +65,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     let isMounted = true;
+    
 
     const loadData = async () => {
       try {
@@ -82,6 +90,15 @@ const Dashboard = () => {
     };
 
     loadData();
+
+// Charger les notifications à chaque chargement du dashboard
+  userAPI.getNotifications().then(res => {
+    setNotifications(res.data.notifications || []);
+    if (res.data.notifications && res.data.notifications.length > 0) {
+      setBanner(res.data.notifications[0]);
+      setTimeout(() => setBanner(null), 5000);
+    }
+  });
 
     // Vérifier le changement de jour toutes les minutes
     const interval = setInterval(() => {
@@ -165,6 +182,11 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+       {/* Notification en temps réel */}
+      {banner && (
+        <NotificationBanner message={banner} onClose={() => setBanner(null)} />
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Bonjour, {user?.username} 👋</h1>
@@ -246,18 +268,20 @@ const Dashboard = () => {
           <div className="card p-6 text-center text-gray-500">Aucune statistique par catégorie disponible</div>
         )}
       </div>
-
-      {/* 🧠 Conseils personnalisés */}
-      {recommendations.length > 0 && (
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">🧠 Conseils personnalisés</h2>
+      {/* Historique des notifications */}
+      <div className="card p-6 mt-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">🔔 Historique des notifications</h2>
+        {notifications.length > 0 ? (
           <ul className="list-disc pl-5 space-y-2 text-gray-700">
-            {recommendations.map((rec, index) => (
-              <li key={index}>{rec}</li>
+            {notifications.map((notif, idx) => (
+              <li key={idx}>{notif}</li>
             ))}
           </ul>
-        </div>
-      )}
+        ) : (
+          <p className="text-gray-500">Aucune notification reçue.</p>
+        )}
+      </div>
+  
 
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-200">
