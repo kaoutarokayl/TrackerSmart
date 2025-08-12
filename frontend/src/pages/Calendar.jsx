@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";  // Ajout de useEffect
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./CalendarCustom.css";
@@ -63,12 +63,21 @@ const PomodoroTimer = () => {
 
 const CalendarPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [tasksData, setTasksData] = useState(initialTasks);
+  const [tasksData, setTasksData] = useState(() => {
+    // Chargement depuis localStorage au démarrage
+    const savedTasks = localStorage.getItem("tasksData");
+    return savedTasks ? JSON.parse(savedTasks) : initialTasks;
+  });
   const [newTask, setNewTask] = useState({ title: "", description: "", time: "", priority: "normale" });
   const [editId, setEditId] = useState(null);
 
   const dateKey = formatDate(selectedDate);
   const tasks = tasksData[dateKey] || [];
+
+  // Sauvegarde dans localStorage à chaque changement de tasksData
+  useEffect(() => {
+    localStorage.setItem("tasksData", JSON.stringify(tasksData));
+  }, [tasksData]);
 
   const handleAddOrEditTask = (e) => {
     e.preventDefault();

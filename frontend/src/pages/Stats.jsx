@@ -17,13 +17,21 @@ const Stats = () => {
   const [timeRange, setTimeRange] = useState("7");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const allCategories = ["Travail", "Navigateurs", "Social", "Divertissement", "Création/Streaming", "Outils système"];
-
+const allCategories = [
+  "Travail",
+  "Navigateurs",
+  "Social",
+  "Divertissement",
+  "Création/Streaming",
+  "Outils système"
+];
   const manualCategories = {
     "google chrome": "Navigateurs",
     "firefox": "Navigateurs",
     "safari": "Navigateurs",
     "edge": "Navigateurs",
+    "microsoft edge": "Navigateurs",
+    "msedge": "Navigateurs",
     "opera": "Navigateurs",
     "vscode": "Travail",
     "visual studio code": "Travail",
@@ -84,12 +92,12 @@ const Stats = () => {
         const contentCategory = Object.entries(browserContentCategories).find(([_, domains]) =>
           domains.some((domain) => urlDomain.includes(domain))
         )?.[0];
-        return contentCategory || "Navigateurs";
+        return contentCategory || "Outils système";
       } catch (e) {
-        return "Navigateurs";
+        return "Outils système";
       }
     }
-    return "Navigateurs";
+    return "Outils système";
   }, []);
 
   const getAppUsageData = useMemo(() => {
