@@ -21,13 +21,6 @@ Utilisation
 
 API Endpoints
 
-Tests & Débogage
-
-Contribuer
-
-Améliorations Futures
-
-Licence
 
 ## ✨ Fonctionnalités
 🖥 Utilisateur
@@ -90,31 +83,45 @@ Modèle ML (category_model.joblib, vectorizer.joblib)
 
 ## 📂 Structure des Fichiers
 smarttracker/
-├── backend/
-│   ├──__pycache__/	Cache Python (à ignorer).
-│   ├──uploads/	Dossier pour fichiers uploadés.
-│   ├──venv/	Environnement virtuel Python (à ignorer).
-│   ├──api.py	Serveur Flask principal et routes API.
-│   ├──app_categories.csv	Mapping Application → Catégorie.
-│   ├──category_model.joblib	Modèle ML pour prédire les catégories d’apps.
-│   ├──config_tracker.json	Configuration du tracker (fréquence, exclusions).
-│   ├──db_init.py	Script pour initialiser la base SQLite.
-│   ├──email_utils.py	Gestion des envois d’emails.
-│   ├──normalize_data.py	Normalisation des noms d’applications.
-│   ├──recommandation.py	Génération de recommandations.
-│   ├──recommender.py	Moteur central de recommandations.
-│   ├──requirements.txt	Dépendances backend.
-│   ├──test_usage.py	Script de test du tracking d’usage.
-│   ├──tracker.py	Suivi en temps réel des applications.
-│   ├──train_model.py	Entraînement du modèle ML.
-│   ├──usage_data.db	Base SQLite contenant les données.
-│   ├──vectorizer.joblib	Transformateur de texte pour le ML.
-├── frontend/
-│   ├── src/
-│   │   ├── pages/ (Dashboard, Stats, Calendar, AdminDashboard, ...)
-│   │   ├── components/ (NotificationBanner, TrackerStatus, ...)
-│   │   ├── context/ (AuthContext.js)
-│   │   └── services/ (api.js, emailService.js, recommendations.js)
+├── backend/                                   # Partie serveur et traitement des données
+│   ├── __pycache__/                           # Cache Python (à ignorer dans Git)
+│   ├── uploads/                               # Fichiers uploadés (CSV, logs...)
+│   ├── venv/                                  # Environnement virtuel Python (à ignorer)
+│   ├── api.py                                 # Serveur Flask principal et routes API
+│   ├── app_categories.csv                     # Mapping Application → Catégorie
+│   ├── category_model.joblib                   # Modèle ML pour prédire les catégories d'apps
+│   ├── config_tracker.json                     # Configuration du tracker (fréquence, exclusions)
+│   ├── db_init.py                              # Script d’initialisation de la base SQLite
+│   ├── email_utils.py                          # Gestion des envois d’emails
+│   ├── normalize_data.py                       # Normalisation des noms d’applications
+│   ├── recommandation.py                       # Génération de recommandations
+│   ├── recommender.py                          # Moteur central de recommandations
+│   ├── requirements.txt                        # Liste des dépendances backend
+│   ├── test_usage.py                           # Script de test du tracking d’usage
+│   ├── tracker.py                              # Suivi en temps réel des applications
+│   ├── train_model.py                          # Entraînement du modèle ML
+│   ├── usage_data.db                           # Base SQLite contenant les données
+│   ├── vectorizer.joblib                       # Transformateur de texte pour le ML
+│
+├── frontend/                                  # Interface utilisateur
+│   ├── src/                                   # Code source React
+│   │   ├── pages/                             # Pages principales
+│   │   │   ├── Dashboard.jsx                  # Tableau de bord utilisateur
+│   │   │   ├── Stats.jsx                      # Statistiques d’utilisation
+│   │   │   ├── Calendar.jsx                   # Calendrier et gestion des tâches
+│   │   │   ├── AdminDashboard.jsx             # Tableau de bord administrateur
+│   │   │   └── ...                            # Autres pages
+│   │   ├── components/                        # Composants réutilisables
+│   │   │   ├── NotificationBanner.jsx         # Bandeau de notifications
+│   │   │   ├── TrackerStatus.jsx              # Statut du tracker
+│   │   │   └── ...                            # Autres composants UI
+│   │   ├── context/                           # Gestion des états globaux
+│   │   │   └── AuthContext.js                 # Contexte d’authentification
+│   │   └── services/                          # Appels API et services externes
+│   │       ├── api.js                         # Appels à l’API Flask
+│   │       ├── emailService.js                # Service d’envoi d’emails
+│   │       └── recommendations.js             # Récupération des recommandations
+
 
 ## 🗄 Base de Données
 Tables principales :
@@ -128,10 +135,11 @@ tasks : tâches avec priorité/statut.
 user_settings : seuils personnalisés.
 
 ## ⚙ Installation
-1️⃣ Cloner le projet
-git clone <url-du-repo>
+
+# 1️⃣ Cloner le projet
+git clone https://github.com/kaoutarokayl/TrackerSmart.git
 cd smarttracker
-2️⃣ Backend
+# 2️⃣ Backend
 
 python -m venv venv
 source venv/bin/activate   # Unix/Mac
@@ -141,7 +149,7 @@ python db_init.py
 python api.py
 API disponible sur http://127.0.0.1:5000
 
-3️⃣ Frontend
+# 3️⃣ Frontend
 
 npm install
 npm start
@@ -178,6 +186,7 @@ GET /admin/users
 SQLite Browser (inspection DB)
 
 Console navigateur
+
 
 
 
