@@ -1,36 +1,37 @@
-"use client"
+"use client";
 
-import { useAuth } from "../context/AuthContext"
-import { LogOut, User, BarChart3, Users, Home, Shield, Settings, Bell, Calendar } from "lucide-react"
-import { Link, useLocation } from "react-router-dom"
+import { useAuth } from "../context/AuthContext";
+import { LogOut, User, BarChart3, Users, Home, Shield, Settings, Bell, Calendar, Clock } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { userAPI } from "../services/api"; // Ajoute cette ligne en haut
 
-
 const Layout = ({ children }) => {
-  const { user, logout, isAdmin } = useAuth()
-  const location = useLocation()
+  const { user, logout, isAdmin } = useAuth();
+  const location = useLocation();
 
   const navigation = [
     { name: "Tableau de bord", href: "/dashboard", icon: Home },
     { name: "Statistiques", href: "/stats", icon: BarChart3 },
     { name: "Mon Profil", href: "/profile", icon: User },
-    { name: "Calendrier", href: "/calendar", icon: Calendar }, 
+    { name: "Calendrier", href: "/calendar", icon: Calendar },
+   
 
     ...(isAdmin
       ? [
           { name: "Utilisateurs", href: "/admin/users", icon: Users },
           { name: "Mode Admin", href: "/admin", icon: Shield, special: true },
+           { name: "Pointage", href: "/attendance", icon: Clock }, 
         ]
       : []),
-  ]
+  ];
 
-  const isActive = (path) => location.pathname === path
+  const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
     if (window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
-      logout()
+      logout();
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -53,7 +54,7 @@ const Layout = ({ children }) => {
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-4 py-6">
             {navigation.map((item) => {
-              const Icon = item.icon
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
@@ -66,7 +67,7 @@ const Layout = ({ children }) => {
                   {item.name}
                   {item.special && <span className="ml-auto text-xs">👑</span>}
                 </Link>
-              )
+              );
             })}
 
             {/* Lien vers la page d'accueil */}
@@ -87,23 +88,23 @@ const Layout = ({ children }) => {
                 </div>
               </div>
               <div>
-        <button
-           onClick={async () => {
-    const { data } = await userAPI.getNotifications();
-    alert(data.notifications.map(n => `${n}`).join('\n'));
-  }}
-  className="ml-2 text-blue-500 hover:text-blue-700 relative"
-  title="Voir les notifications"
->
-  <span className="relative">
-    <Bell className="w-5 h-5" />
-    {user?.notifications?.length > 0 && (
-      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2">
-        {user.notifications.length}
-      </span>
-    )}
-  </span>
-</button>
+                <button
+                  onClick={async () => {
+                    const { data } = await userAPI.getNotifications();
+                    alert(data.notifications.map((n) => `${n}`).join("\n"));
+                  }}
+                  className="ml-2 text-blue-500 hover:text-blue-700 relative"
+                  title="Voir les notifications"
+                >
+                  <span className="relative">
+                    <Bell className="w-5 h-5" />
+                    {user?.notifications?.length > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2">
+                        {user.notifications.length}
+                      </span>
+                    )}
+                  </span>
+                </button>
                 <button
                   onClick={handleLogout}
                   className="text-gray-400 hover-text-red-600 transition-colors ml-2"
@@ -122,7 +123,7 @@ const Layout = ({ children }) => {
         <main className="py-8 px-8">{children}</main>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;

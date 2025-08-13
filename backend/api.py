@@ -412,7 +412,66 @@ def manage_user(user_id, current_user):
     finally:
         if 'conn' in locals():
             conn.close()
-
+@app.route('/admin/attendance', methods=['GET'])
+@token_required
+def get_all_attendance(current_user):
+    if current_user['role'] != 'admin':
+        return jsonify({'error': 'Accès non autorisé'}), 403
+    
+    time_range = request.args.get('time_range', '24')  # Par défaut 24 heures
+    time_unit = 'hours' if time_range == '24' else 'days'
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT u.username, DATE(s.start_time) as date, 
+                   MIN(s.start_time) as arrival,
+                   MAX(datetime(s.start_time, '+' || s.duration || ' seconds')) as departure,
+                   SUM(s.duration) / 3600.0 as total_hours
+            FROM usage s
+            JOIN users u ON s.user_id = u.id
+            WHERE DATE(s.start_time) >= DATE('now', ?)
+            GROUP BY u.username, DATE(s.start_time)
+            ORDER BY date DESC, u.username
+        ''', (f'-{time_range} {time_unit}',))
+        
+        data = cursor.fetchall()
+        conn.close()
+        return jsonify({'all_attendance': [dict(row) for row in data]})
+    except Exception as e:
+        logger.error(f"Erreur get_all_attendance: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+@app.route('/attendance/<int:user_id>', methods=['GET'])
+@token_required
+def get_user_attendance(current_user, user_id):
+    if current_user['role'] != 'admin':
+        return jsonify({'error': 'Accès non autorisé'}), 403
+    
+    time_range = request.args.get('time_range', '7')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT u.username, DATE(s.start_time) as date, 
+                   MIN(s.start_time) as arrival,
+                   MAX(datetime(s.start_time, '+' || s.duration || ' seconds')) as departure,
+                   SUM(s.duration) / 3600.0 as total_hours
+            FROM usage s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.user_id = ? AND DATE(s.start_time) >= DATE('now', ?)
+            GROUP BY u.username, DATE(s.start_time)
+            ORDER BY date DESC
+        ''', (user_id, f'-{time_range} days'))
+        
+        data = cursor.fetchall()
+        conn.close()
+        return jsonify({'attendance': [dict(row) for row in data]})
+    except Exception as e:
+        logger.error(f"Erreur get_user_attendance: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    
 # 📊 Statistiques admin avec vraies données
 @app.route('/admin/stats', methods=['GET'])
 @token_required

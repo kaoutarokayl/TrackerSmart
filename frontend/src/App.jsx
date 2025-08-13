@@ -12,6 +12,7 @@ import AdminUsers from "./pages/AdminUsers"
 import AdminDashboard from "./pages/AdminDashboard"
 import Profile from "./pages/Profile"
 import CalendarPage from "./pages/Calendar.jsx"
+import Attendance from "./pages/Attendance"; // Import ajouté pour corriger l'erreur ESLint
 
 
 const AppRoutes = () => {
@@ -33,6 +34,17 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <Layout>
               <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/attendance"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Attendance />
             </Layout>
           </ProtectedRoute>
         }

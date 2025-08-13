@@ -87,4 +87,9 @@ export const deleteTask = (id) =>
 export const updateTaskStatus = (id, status) =>
   api.patch(`/tasks/${id}`, { status })
 
+export const attendanceAPI = {
+  getUserAttendance: (userId, timeRange = "7") => api.get(`/attendance/${userId}?time_range=${timeRange}`),
+  getAllAttendance: (timeRange = "7") => api.get(`/admin/attendance?time_range=${timeRange}`),
+};
+
 export default api;
