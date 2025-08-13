@@ -219,24 +219,32 @@ Recevoir recommandations & alertes email
 ## 📡 API Endpoints (Exemples)
 
 # Authentification :
+
 POST /login
+
 POST /register
+
 # Tracker :
 POST /tracker/start
+
 POST /tracker/stop
+
 GET /tracker/status
+
 # Usage :
 GET /usage/<user_id>
+
 # Admin :
 GET /admin/stats
+
 GET /admin/users
-🧪 Tests & Débogage
 
 ## Outils utiles :
 
 SQLite Browser (inspection DB)
 
 Console navigateur
+
 
 
 
