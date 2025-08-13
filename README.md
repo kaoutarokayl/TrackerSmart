@@ -122,7 +122,6 @@ smarttracker/
 
 │   ├── vectorizer.joblib                       # Transformateur de texte pour le ML
 
-│
 ├── frontend/                                  # Interface utilisateur
 
 │   ├── src/                                   # Code source React
@@ -233,6 +232,7 @@ GET /admin/users
 SQLite Browser (inspection DB)
 
 Console navigateur
+
 
 
 
