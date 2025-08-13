@@ -23,7 +23,7 @@ API Endpoints
 
 
 ## ✨ Fonctionnalités
-🖥 Utilisateur
+# 🖥 Utilisateur
 Suivi en temps réel des applications avec normalisation des noms.
 
 Statistiques visuelles : temps total, app la plus utilisée, répartition par catégorie.
@@ -44,13 +44,13 @@ Pointage (Attendance) : suivi des heures de travail, export CSV.
 
 Profil utilisateur : mise à jour infos, stats personnelles.
 
-Notifications :
+# Notifications :
 
 In-App (bannières dynamiques).
 
 Email (rapports, alertes).
 
-🔑 Administrateur
+# 🔑 Administrateur
 Gestion des utilisateurs (CRUD).
 
 Statistiques globales et tendances.
@@ -61,11 +61,12 @@ Santé système.
 
 Export des données.
 
-##🛠 Architecture
+## 🛠 Architecture
 
 Frontend (React)  →  API REST (Flask)  →  SQLite
          ↑                           ↓
        Tracker.py     ←     Modèle ML (Joblib)
+       
 ## 🧰 Technologies
 Frontend :
 
@@ -202,6 +203,7 @@ npm start
 Interface disponible sur http://localhost:3000
 
 ## ▶ Utilisation
+
 Se connecter (admin/admin123 pour test)
 
 Démarrer le tracker (automatique au login)
@@ -213,6 +215,7 @@ Gérer tâches et pointages
 Recevoir recommandations & alertes email
 
 ## 📡 API Endpoints (Exemples)
+
 # Authentification :
 POST /login
 POST /register
@@ -232,6 +235,7 @@ GET /admin/users
 SQLite Browser (inspection DB)
 
 Console navigateur
+
 
 
 
