@@ -199,7 +199,9 @@ API disponible sur http://127.0.0.1:5000
 # 3️⃣ Frontend
 
 npm install
+
 npm start
+
 Interface disponible sur http://localhost:3000
 
 ## ▶ Utilisation
@@ -235,6 +237,7 @@ GET /admin/users
 SQLite Browser (inspection DB)
 
 Console navigateur
+
 
 
 
