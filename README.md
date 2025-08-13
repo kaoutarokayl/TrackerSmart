@@ -137,16 +137,25 @@ user_settings : seuils personnalisés.
 ## ⚙ Installation
 
 # 1️⃣ Cloner le projet
+
 git clone https://github.com/kaoutarokayl/TrackerSmart.git
+
 cd smarttracker
+
 # 2️⃣ Backend
 
 python -m venv venv
+
 source venv/bin/activate   # Unix/Mac
+
 venv\Scripts\activate      # Windows
+
 pip install -r requirements.txt
+
 python db_init.py
+
 python api.py
+
 API disponible sur http://127.0.0.1:5000
 
 # 3️⃣ Frontend
@@ -186,6 +195,7 @@ GET /admin/users
 SQLite Browser (inspection DB)
 
 Console navigateur
+
 
 
 
